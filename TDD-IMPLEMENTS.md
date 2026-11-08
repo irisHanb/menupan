@@ -1,183 +1,265 @@
-# TDD-IMPLEMENTS.md — TDD 실행 추적 (마일스톤 단위)
+# TDD-IMPLEMENTS.md — 마일스톤 단위 Red · Green · Refactor
 
-> [plan.md](plan.md)의 백로그를 **마일스톤 단위**로 진행한다. 각 마일스톤을 Kent
-> Beck TDD 사이클로 하나씩 닫는다: **`/tdd-red M1`** (마일스톤의 실패 테스트들)
-> → **`/tdd-green M1`** (전부 통과 최소 구현) → **`/tdd-refactor M1`** (구조
-> 정리).
+> `plan.md` 백로그를 **마일스톤 단위**로 실행합니다. 마일스톤 하나가 Red → Green →
+> Refactor 한 사이클이고, 마일스톤 안에서는 체크리스트 순서대로 테스트를 하나씩 쌓습니다.
 >
-> 한 번에 **한 마일스톤**만. 마일스톤 내부의 세부 테스트는 체크리스트로 두고, 그
-> 안에서는 "한 번에 한 테스트"를 지킨다.
+> | 명령                  | 하는 일                                                         | 상태 변화        |
+> | --------------------- | --------------------------------------------------------------- | ---------------- |
+> | `/tdd-red [M번호]`    | 다음 `TODO` 마일스톤의 체크리스트 전체를 실패하는 테스트로 씁니다 | `TODO` → `RED`   |
+> | `/tdd-green [M번호]`  | `RED` 마일스톤의 테스트를 위에서부터 하나씩 최소 구현으로 통과시킵니다 | `RED` → `GREEN`  |
+> | `/tdd-refactor [M번호]` | `GREEN` 마일스톤의 하드코딩·중복·원칙 위반을 행위 변경 없이 정리합니다 | `GREEN` → `DONE` |
+>
+> 규칙: `RED`·`GREEN` 마일스톤이 있는 동안 다음 마일스톤의 `/tdd-red`를 실행하지 않습니다.
+> 마일스톤 상태는 아래 인덱스 표에, 테스트별 진행은 각 절의 체크리스트(`[ ]`/`[x]`)에 적습니다.
+>
+> 2026-11-08: 커밋 `88d54a0`의 이 문서는 M0~M18을 `DONE`으로 표시했지만 저장소 어느 브랜치에도
+> `package.json`·`src/`·`test/`가 없었습니다. 코드 상태에 맞춰 M0~M5를 `TODO`로 되돌렸습니다.
 
-## 상태 표기
+## 입력 데이터 계약 (`data/menu.xlsx` 실측)
 
-| 상태    | 의미                                           |
-| ------- | ---------------------------------------------- |
-| `TODO`  | 아직 시작 안 함                                |
-| `RED`   | 마일스톤의 실패 테스트들 작성됨, 구현 전       |
-| `GREEN` | 마일스톤의 모든 테스트 통과하는 최소 구현 완료 |
-| `DONE`  | 리팩터링까지 끝, 마일스톤 종료                 |
+- 시트 순서: `커피`, `디저트`, `음료`, `_설정`
+- 메뉴 시트 1행 헤더: `메뉴명 | 가격 | 설명 | 품절 | 카테고리` (가격은 숫자 셀, 품절은 `Y` 또는 빈칸)
+- `_설정` 시트: 1행 헤더 `항목 | 값`, 이후 키-값 행 — `매장명=빌런 커피`, `테마=deep-green`,
+  `디바이스=tablet-port`, `영문태그=SPECIALTY COFFEE`, `자동전환초=0`
+- 테스트 fixture는 실제 파일 대신 `XLSX.utils.aoa_to_sheet`로 만든 워크북 객체를 씁니다.
 
-타입: `(S)` 구조적 변경 중심 · `(B)` 행위적 변경 중심
+## 출력 계약 (M2 완료 시점)
 
----
-
-## 마일스톤 현황
-
-| ID  | 타입 | 마일스톤                                       | 상태   | 테스트 파일                                           |
-| --- | ---- | ---------------------------------------------- | ------ | ----------------------------------------------------- |
-| M0  | (S)  | 프로젝트 골격 (러너 + 파서 모듈 골격)          | `DONE` | `test/sanity.test.mjs`, `test/parseWorkbook.test.mjs` |
-| M1  | (B)  | Excel 파서 (순수 함수)                         | `DONE` | `test/parseWorkbook.test.mjs`                         |
-| M2  | (B)  | `_설정` 파싱                                   | `DONE` | `test/parseWorkbook.test.mjs`                         |
-| M3  | (B)  | HTTP API                                       | `DONE` | `test/createApp.test.mjs`                             |
-| M4  | (B)  | 파일 감시 + SSE                                | `DONE` | `test/debounce.test.mjs`, `test/sse.test.mjs`         |
-| M5  | (B)  | 클라이언트 렌더링 (선택)                       | `DONE` | `test/render.test.mjs`                                |
-| M6  | (B)  | 다중 페이지 네비게이션 (시트별 페이지 전환)    | `DONE` | `test/render.test.mjs`                                |
-| M7  | (B)  | Excel 원자적 저장 감시 (수정 즉시 반영)        | `DONE` | `test/watchMenuFile.test.mjs`                         |
-| M8  | (B)  | 디자인 적용 (테마색·PNG·레이아웃)              | `DONE` | `test/render.test.mjs`, `test/createApp.test.mjs`     |
-| M9  | (B)  | 디바이스 캔버스 최적화 (종횡비·contain·반응형) | `DONE` | `test/render.test.mjs`                                |
-| M10 | (B)  | 디바이스 선택 미리보기 뷰어 (해상도 토글)      | `DONE` | `test/render.test.mjs`                                |
-| M11 | (B)  | `_설정` 확장 파싱 (디바이스·영문태그)          | `DONE` | `test/parseWorkbook.test.mjs`, `test/render.test.mjs` |
-| M12 | (B)  | Excel 쓰기 (설정 저장)                         | `DONE` | `test/saveSettings.test.mjs`                          |
-| M13 | (B)  | 어드민 인증 (admin/1234)                       | `DONE` | `test/auth.test.mjs`, `test/createApp.test.mjs`       |
-| M14 | (B)  | 어드민 설정 API (GET/POST → Excel)             | `DONE` | `test/createApp.test.mjs`                             |
-| M15 | (B)  | 어드민 UI (/admin 화면)                        | `DONE` | `test/render.test.mjs`, `test/createApp.test.mjs`     |
-| M16 | (B)  | 프론트 키오스크화 (설정대로 단일 캔버스)       | `DONE` | (결선 + 端到端 검증)                                  |
-| M17 | (B)  | 캔버스 오버플로우 fit (폰트·리스트 자동 축소)  | `DONE` | `test/render.test.mjs`                                |
-| M18 | (B)  | 페이지 캐러셀 (시트별 자동 순환 + 인디케이터)  | `DONE` | `test/render.test.mjs`                                |
-
-> M11~M16: 어드민에서 테마·디바이스·시트 설정 조정 → Excel 저장 → SSE로 프론트
-> 반영. 프론트는 옵션 UI 제거.
-
-> M6~M8: 결과물 검토에서 드러난 결선 누락 3건의 보강. 근본원인은 분석 리포트
-> 참조.
+```js
+{
+  store: '빌런 커피',
+  theme: 'deep-green',          // 없으면 'cafe-dark'
+  autoRotateSec: 0,             // 없거나 비숫자면 0
+  pages: [
+    {
+      title: '커피',
+      items: [{ name, price, desc, soldOut, category }],
+      groups: [{ category: '에스프레소', items: [/* ... */] }],
+    },
+  ],
+}
+```
 
 ---
 
-## M0 — 프로젝트 골격 · `DONE`
+## 인덱스
 
-- [x] `package.json` + `node:test` 러너 동작 (`npm test` 통과)
-- [x] `src/parseWorkbook.mjs` 빈 모듈 + `test/parseWorkbook.test.mjs` 골격
-      (`parseWorkbook` 호출 가능)
-
-## M1 — Excel 파서 (순수 함수) · `DONE`
-
-> 파일 시스템·HTTP 없이 워크북 객체(또는 fixture)만 입력받아 JSON을 내는 순수
-> 함수.
-
-- [x] 단일 메뉴 시트의 헤더+1행을 `{ name, price, desc, soldOut, category }`로
-      파싱
-- [x] 가격을 **숫자 타입 그대로** 유지 (문자열로 바꾸지 않음)
-- [x] 품절 셀 `Y` → `soldOut === true`, 빈칸 → `false` 정규화
-- [x] `_` 접두사 시트(`_설정`)를 페이지 목록에서 제외
-- [x] 여러 메뉴 시트를 시트 순서대로 `pages` 배열로 (시트명 = 페이지명)
-- [x] 빈 행 / 메뉴명 없는 행은 건너뜀
-- [x] `카테고리` 값으로 페이지 내 항목에 그룹 키 부여
-
-## M2 — `_설정` 파싱 · `DONE`
-
-- [x] `_설정`에서 `매장명` 읽기
-- [x] `_설정`에서 `테마` 읽기 (없으면 기본값 `cafe-dark`)
-- [x] `자동전환초`를 숫자로 읽기 (없거나 비숫자면 `0`)
-- [x] 최종 출력 `{ store, theme, autoRotateSec, pages }` 조립
-
-## M3 — HTTP API · `DONE`
-
-- [x] Express 앱 생성 로직을 `createApp()`로 분리 (supertest, listen 없이) —
-      구조적
-- [x] `GET /api/menu`가 파서 출력 JSON을 200으로 반환
-- [x] `GET /api/menu`가 빈/잘못된 워크북에서도 빈 `pages`로 안전 반환
-- [x] `public/` 정적 파일 서빙
-
-## M4 — 파일 감시 + SSE · `DONE`
-
-> 실제 fs 이벤트는 임시 fixture 파일로. 디바운스는 타이머 주입으로 결정적이게.
-
-- [x] 디바운스 로직을 `debounce(fn, ms)` 순수 유틸로 분리 — 구조적
-- [x] 연속 N회 호출이 `ms` 내면 콜백 1회만 실행
-- [x] `GET /events`가 SSE 헤더(`text/event-stream`)로 연결 오픈
-      (`createHub().subscribe`)
-- [x] 워크북 변경 시 클라이언트에 `event: menu-updated` 푸시
-      (`createHub().broadcast`)
-
-## M5 — 클라이언트 렌더링 (선택, 강의 진도에 따라) · `DONE`
-
-- [x] `client.js`가 `/api/menu`를 받아 페이지/항목을 DOM에 렌더 (`renderPage`
-      순수 함수 + client.js 결선)
-- [x] `soldOut` 항목에 취소선 + "품절" 라벨 적용 (`sold-out` 클래스 +
-      `board.css`)
-- [x] `theme` 값으로 `<body>` 테마 클래스 스위치 (`themeClass`)
-- [x] `autoRotateSec > 0`이면 그 주기로 페이지 순환 (`nextPageIndex` +
-      setInterval)
+| ID | 마일스톤                  | 테스트 수 | 테스트 파일 | 상태 |
+| -- | ------------------------- | --------- | ----------- | ---- |
+| M0 | 프로젝트 골격             | 2         | `test/parseWorkbook.test.mjs` | DONE |
+| M1 | Excel 파서 (순수 함수)    | 13        | `test/parseWorkbook.test.mjs` | DONE |
+| M2 | `_설정` 파싱              | 6         |             | TODO |
+| M3 | HTTP API                  | 6         |             | TODO |
+| M4 | 파일 감시 + SSE           | 7         |             | TODO |
+| M5 | 클라이언트 렌더링 (선택)  | 6         |             | TODO |
 
 ---
 
-## M6 — 다중 페이지 네비게이션 · `DONE`
+## M0 — 프로젝트 골격
 
-> 문제3: 시트 3개인데 첫 페이지만 노출. 전체 페이지 접근 수단 부재.
+- plan.md: 마일스톤 0 (2항목). `plan.md`는 첫 항목을 `[x]`로 표시하지만 `package.json`이 없습니다(2026-11-08 `ls` 확인).
+- 준비(Red): 없음. 의존성은 필요한 마일스톤에서 설치합니다.
+- 예상 Red: `npm error enoent Could not read package.json` → `package.json` 생성 후 `ERR_MODULE_NOT_FOUND: src/parseWorkbook.mjs`
+  - `package.json`이 없으면 `npm test`가 실행되지 않으므로, Red 확인은 `node --test`로 합니다.
 
-- [x] `renderNav(pages, currentIndex)`가 모든 페이지 이름을 탭으로 렌더
-- [x] 현재 페이지 탭에 `active` 표시
-- [x] `client.js`가 탭 클릭으로 페이지 전환 (수동 네비)
+### 세부 테스트 체크리스트
 
-## M7 — Excel 원자적 저장 감시 · `DONE`
+- [x] T-00-01 `test/smoke.test.mjs` › `shouldRunNodeTestRunner` — `npm test`가 `node:test`로 실행되고 0으로 끝난다
+- [x] T-00-02 `test/parseWorkbook.test.mjs` › `shouldExportParseWorkbookFunction` — `typeof parseWorkbook === 'function'`
 
-> 문제2: 단일 파일 watch라 Excel의 temp→rename 저장에서 change 유실.
+### Green 힌트
 
-- [x] `watchMenuFile(chokidar, file, onChange)`가 **포함 디렉토리**를 감시 (단일
-      파일 X)
-- [x] `awaitWriteFinish` 옵션으로 쓰기 완료 후 읽음
-- [x] 대상 파일의 `add`/`change` 이벤트에 `onChange` 연결
+- `package.json`: `"type": "module"`, `"scripts": { "test": "node --test", "start": "node server.mjs" }`
+- `src/parseWorkbook.mjs`: `export function parseWorkbook(workbook) {}`
 
-## M8 — 디자인 적용 · `DONE`
+### Refactor 점검
 
-> 문제1: design/project 디자인(테마색·PNG·레이아웃) 미반영.
+- T-00-02가 생긴 뒤 `test/smoke.test.mjs`가 더 필요한지 확인합니다.
 
-- [x] `renderBoard(menu, currentIndex)`가 매장명 + eyebrow + 현재 페이지를 렌더
-- [x] `renderItem`이 desc와 dotted leader를 포함
-- [x] 테마별 `text/sub/accent` 색을 CSS 변수로 적용 (8종, `board.css`)
-- [x] `design/project/assets`를 `/assets`로 정적 노출, 테마×디바이스 PNG
-      배경/프레임 (`assetUrl` + `currentDevice`)
+### 기록
 
----
-
-## M9 — 디바이스 캔버스 최적화 · `DONE`
-
-> 추가 문제: 전체화면 cover라 PNG·프레임이 잘림. design은 디바이스별 고정 종횡비
-> 캔버스를 contain.
-
-- [x] `DEVICE_DIMENSIONS` + `deviceAspectRatio(device)`로 디바이스 종횡비 제공
-      (순수 함수)
-- [x] `.stage` 캔버스를 `aspect-ratio` + contain으로 letterbox (잘림 제거)
-- [x] 내부 타이포·여백을 `cqmin`으로 캔버스 비례 스케일
-- [x] `client.js`가 화면 비율로 디바이스 판단 → 종횡비·PNG 세트 적용 (resize
-      반응)
+- Red: `npm test` → `npm error enoent Could not read package.json` (T-00-01) · `node --test` → pass 1 / fail 1, `ERR_MODULE_NOT_FOUND: src/parseWorkbook.mjs` (T-00-02)
+- Green: T-00-01 — `package.json`(`type: module`, `test: node --test`) 생성, `npm test -- test/smoke.test.mjs` pass 1 / fail 0 · T-00-02 — `src/parseWorkbook.mjs` 빈 함수 export. `npm test` pass 2 / fail 0, exit 0
+- Refactor: Remove Dead Code — `test/smoke.test.mjs` 삭제(`parseWorkbook.test.mjs`가 러너 동작을 함께 증명). `npm test` 전 pass 2 / 후 pass 1, fail 0
 
 ---
 
-## M10 — 디바이스 선택 미리보기 뷰어 · `DONE`
+## M1 — Excel 파서 (순수 함수)
 
-> CLAUDE.md 해상도 스펙(사이니지 1080×1920 / 태블릿가로 1920×1440 / 태블릿세로
-> 1440×1920 / 모바일 1080×2160)을 토글로 골라 미리본다.
+- plan.md: 마일스톤 1 (7항목) + 빈 워크북 1항목(plan.md M3-3의 파서 부분)
+- 입력은 SheetJS 워크북 객체이고 출력은 plain object입니다. 파일 시스템을 읽지 않습니다.
+- 준비(Red):
+  - `npm i "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"` (npm `xlsx` 0.18.5 금지)
+  - `makeWorkbook({ 커피: [[...헤더], [...행]] })` — `XLSX.utils.book_new` + `aoa_to_sheet`로 워크북을 반환. 테스트 파일 안에 둡니다
+    (`test/` 아래 별도 `.mjs`는 `node --test` 기본 패턴 `**/test/**/*.mjs`에 걸려 테스트 파일로 실행됩니다)
+- 기본 fixture: `커피` 시트 `[['메뉴명','가격','설명','품절','카테고리'], ['아메리카노',4500,'깔끔한 산미','','에스프레소']]`
+- 예상 Red: `TypeError: Cannot read properties of undefined (reading 'pages')`
 
-- [x] `DEVICE_DIMENSIONS`에 한글 `label` 추가 (해상도 스펙 단일 출처)
-- [x] `deviceLabel(device)` / `deviceResolution(device)` 순수 함수
-- [x] `renderDevicePicker(currentDevice)`가 4종 토글 + active 표시
-- [x] `client.js`가 토글로 디바이스 전환 + 해상도 라벨 표시
+### 세부 테스트 체크리스트
+
+순서는 Green에서 하드코딩(Fake It)한 값을 다음 테스트가 일반화하도록 짰습니다(삼각측량).
+
+- [x] T-01-01 `shouldParseMenuNameFromFirstDataRow` — `pages[0].items[0].name === '아메리카노'`
+- [x] T-01-02 `shouldKeepPriceAsNumber` — `item.price === 4500`, `typeof` `'number'`
+- [x] T-01-03 `shouldParseDescriptionAndCategory` — `desc === '깔끔한 산미'`, `category === '에스프레소'`
+- [x] T-01-04 `shouldMarkSoldOutWhenCellIsY` — 품절 `'Y'` → `soldOut === true`
+- [x] T-01-05 `shouldNotMarkSoldOutWhenCellIsBlank` — 품절 `''` → `soldOut === false` (`undefined` 불허)
+- [x] T-01-06 `shouldParseEveryDataRowInOrder` — 행 `아메리카노`, `카페라떼` → 이름 배열 `['아메리카노','카페라떼']`
+- [x] T-01-07 `shouldMapColumnsByHeaderName` — 헤더 순서 `['카테고리','메뉴명','품절','가격','설명']`여도 같은 항목 객체
+- [x] T-01-08 `shouldExcludeUnderscorePrefixedSheets` — `커피` + `_설정` → `pages.length === 1`
+- [x] T-01-09 `shouldCreateOnePagePerMenuSheetInSheetOrder` — 시트 `커피`,`디저트`,`_설정`,`음료` → 제목 `['커피','디저트','음료']`
+- [x] T-01-10 `shouldSkipBlankRows` — 데이터 행 사이 `['','','','','']` → 항목 2개
+- [x] T-01-11 `shouldSkipRowsWithoutMenuName` — `['',3000,'설명만 있음','','기타']` 행이 `items`에 없음
+- [x] T-01-12 `shouldGroupItemsByCategoryInFirstAppearanceOrder` — 카테고리 `에스프레소`,`브루잉`,`에스프레소` → `groups` `[{ category:'에스프레소', items:[1행,3행] }, { category:'브루잉', items:[2행] }]`
+- [x] T-01-13 `shouldReturnEmptyPagesForWorkbookWithoutSheets` — `XLSX.utils.book_new()`(시트 0개) → `pages` `[]`, 예외 없음
+
+### Green 힌트
+
+- `XLSX.utils.sheet_to_json(sheet, { defval: '' })`로 헤더 키 객체를 얻으면 T-01-07이 함께 해결됩니다.
+- 품절 정규화는 `cell === 'Y'`입니다. T-01-04를 `true`로 하드코딩하면 T-01-05가 일반화를 강제합니다.
+
+### Refactor 점검
+
+- 헤더 문자열(`'메뉴명'` 등)을 `{ 메뉴명: 'name', 가격: 'price', ... }` 열 매핑 상수 하나로 모읍니다.
+- 품절 표식 `'Y'`, 설정 시트 접두사 `'_'`를 이름 있는 상수로 바꿉니다.
+- `toMenuItem(row)`, `toPage(name, sheet)`, `groupByCategory(items)`를 추출합니다.
+- T-01-10과 T-01-11의 행 제외 판정이 "메뉴명 없음" 하나로 합쳐지는지 확인합니다.
+- 테스트 코드의 반복 fixture를 헬퍼로 뽑습니다.
+
+### 기록
+
+- Red: `npm test` → tests 14 / pass 1 / fail 13. 13개 모두 `TypeError: Cannot read properties of undefined (reading 'pages')` (`parseWorkbook`이 `undefined` 반환). xlsx 0.20.3 CDN 설치
+- Green: 3단계 — ① Fake It(`name: '아메리카노'` 하드코딩) pass 3 → ② 첫 시트 행→항목 매핑 pass 9 → ③ `_` 시트 제외·메뉴명 빈 행 제외·`groups` pass 14 / fail 0. 실제 `data/menu.xlsx`: 커피 6개·디저트 5개·음료 4개
+- Refactor: 4단계, 단계마다 pass 14 / fail 0 — ① Replace Magic Literal with Symbolic Constant(`COLUMNS`, `SOLD_OUT_MARK`, `NON_PAGE_PREFIX`) ② Extract Function `toMenuItem` ③ Extract Function `groupByCategory`(`find` 반복 → `Map`) ④ Extract Function `isPageSheet`·`toPage`·`hasMenuName`(T-01-10/11 판정이 `hasMenuName` 하나로 합쳐짐)
 
 ---
 
-## 진행 현황
+## M2 — `_설정` 파싱
 
-- 완료: **M0~M10** (11 / 11 마일스톤).
-- 테스트: 42 pass / 0 fail.
+- plan.md: 마일스톤 2 (4항목)
+- `_설정`은 `항목 | 값` 키-값 시트입니다. `디바이스`, `영문태그`는 `plan.md`에 없어서 이번 범위에서 읽지 않습니다.
+- 기본 fixture: `커피` 시트 + `_설정` `[['항목','값'],['매장명','빌런 커피'],['테마','deep-green'],['자동전환초',8]]`
+- 예상 Red: `AssertionError: undefined !== '빌런 커피'`
 
-## 사이클 규칙 (요약)
+### 세부 테스트 체크리스트
 
-1. `/tdd-red M1` → 마일스톤의 세부 테스트들을 실패 테스트로 작성, 마일스톤 상태
-   `RED`.
-2. `/tdd-green M1` → 그 테스트들을 전부 통과시키는 최소 구현, 상태 `GREEN`.
-3. `/tdd-refactor M1` → 하드코딩·중복 정리(행위 불변), 상태 `DONE`.
-4. 마일스톤 내부에서는 "한 번에 한 테스트" 미니 사이클을 지킨다(체크리스트를
-   위에서 아래로).
-5. 구조적(`S`)·행위적(`B`) 변경은 커밋을 분리한다. ([CLAUDE.md](CLAUDE.md) 커밋
-   규율)
+- [ ] T-02-01 `shouldReadStoreNameFromSettings` — `store === '빌런 커피'`
+- [ ] T-02-02 `shouldReadThemeFromSettings` — `theme === 'deep-green'`
+- [ ] T-02-03 `shouldDefaultThemeToCafeDark` — `테마` 행 없음 → `theme === 'cafe-dark'`
+- [ ] T-02-04 `shouldReadAutoRotateSecondsAsNumber` — `autoRotateSec === 8`
+- [ ] T-02-05 `shouldDefaultAutoRotateToZeroWhenMissingOrNotNumeric` — 행 없음 / `'빠르게'` → 두 경우 모두 `0`
+- [ ] T-02-06 `shouldAssembleFinalShapeWithDefaultsWhenSettingsSheetMissing` — `커피` 시트만 → 키 `['autoRotateSec','pages','store','theme']`, `store === ''`, `theme === 'cafe-dark'`, `autoRotateSec === 0`
+
+### Refactor 점검
+
+- 키-값 행을 객체로 바꾸는 `readSettings(sheet)`를 추출합니다.
+- 기본값(`''`, `'cafe-dark'`, `0`)을 `DEFAULT_SETTINGS` 상수 하나로 모읍니다.
+- `parseWorkbook`이 "시트 분류 → 페이지 변환 → 설정 변환 → 조립" 단계로 읽히는지 확인합니다(Split Phase).
+
+### 기록
+
+- Red:
+- Green:
+- Refactor:
+
+---
+
+## M3 — HTTP API
+
+- plan.md: 마일스톤 3 (4항목) + 실행 진입점 2항목 추가(T-03-05, T-03-06). 추가한 이유는 테스트 없이 작성되는 연결 코드를 없애기 위해서입니다.
+- 준비(Red): `npm i express` · `npm i -D supertest`
+- 앱은 `createApp({ loadMenu, publicDir })`로 의존성을 주입받습니다. `listen`은 `server.mjs`에서만 합니다.
+- 예상 Red: `ERR_MODULE_NOT_FOUND: src/app.mjs`
+
+### 세부 테스트 체크리스트
+
+- [ ] T-03-01 `test/app.test.mjs` › `shouldCreateExpressAppWithoutListening` — `typeof createApp().listen === 'function'`
+- [ ] T-03-02 `shouldServeMenuJsonFromInjectedLoader` — `createApp({ loadMenu: () => menuFixture })` → `GET /api/menu` `200`, `application/json`, body deepEqual `menuFixture`
+- [ ] T-03-03 `shouldRespondWithEmptyPagesWhenLoaderThrows` — `loadMenu`가 `throw` → `200`, body `{ store:'', theme:'cafe-dark', autoRotateSec:0, pages:[] }`
+- [ ] T-03-04 `shouldServeStaticFilesFromPublicDir` — 임시 디렉터리(`fs.mkdtemp`)의 `index.html` → `GET /` `200`, `text/html`, 본문 일치
+- [ ] T-03-05 `test/loadMenuFromFile.test.mjs` › `shouldLoadSampleWorkbookFromDisk` — `loadMenuFromFile('data/menu.xlsx')` → 제목 `['커피','디저트','음료']`, `store === '빌런 커피'`
+- [ ] T-03-06 `test/server.test.mjs` › `shouldStartServerAndServeMenu` — `spawn('node', ['server.mjs'])`(`PORT=0`), stdout `listening on <port>` 대기 후 `GET /api/menu` `200`, `pages.length === 3`, 끝나면 프로세스 종료
+
+### Green 힌트
+
+- `loadMenuFromFile`: `XLSX.read(fs.readFileSync(path))` → `parseWorkbook`. 파일 I/O는 이 함수에만 둡니다.
+  ESM 빌드의 `XLSX.readFile`은 `XLSX.set_fs(fs)` 없이 `Cannot access file`을 던집니다(M1 Green에서 확인).
+- `server.mjs`: `createApp({ loadMenu: () => loadMenuFromFile(DATA_PATH), publicDir: 'public' })` + `listen(process.env.PORT ?? 3000)`
+
+### Refactor 점검
+
+- T-03-03의 빈 메뉴 기본값이 M2의 `DEFAULT_SETTINGS`와 중복되지 않게 공유합니다.
+- 앱 내부에서 파일을 직접 읽지 않는지(의존성 명시) 확인합니다.
+
+### 기록
+
+- Red:
+- Green:
+- Refactor:
+
+---
+
+## M4 — 파일 감시 + SSE
+
+- plan.md: 마일스톤 4 (4항목) + 디바운스 삼각측량 1항목, 감시·통합 2항목 추가
+- 준비(Red): `npm i chokidar`
+- 디바운스는 `mock.timers`로 결정적으로 테스트합니다. fs 이벤트는 임시 파일로 테스트합니다.
+- SSE 응답은 끝나지 않으므로 `app.listen(0)` + `http.get`으로 받은 뒤 `req.destroy()`합니다.
+- 예상 Red: `ERR_MODULE_NOT_FOUND: src/debounce.mjs`
+
+### 세부 테스트 체크리스트
+
+- [ ] T-04-01 `test/debounce.test.mjs` › `shouldReturnFunctionFromDebounce` — `typeof debounce(fn, 300) === 'function'`
+- [ ] T-04-02 `shouldInvokeOnceForBurstWithinWindow` — 100ms 간격 3회 호출 + `tick(300)` → `callCount === 1`
+- [ ] T-04-03 `shouldInvokeEachTimeWhenCallsAreFartherApartThanWindow` — 호출 → `tick(300)` → 호출 → `tick(300)` → `callCount === 2`
+- [ ] T-04-04 `test/app.test.mjs` › `shouldOpenSseStreamOnEvents` — `GET /events` `200`, `content-type`이 `text/event-stream`으로 시작
+- [ ] T-04-05 `shouldPushMenuUpdatedEventToConnectedClients` — 연결된 클라이언트 1개, `notifyMenuUpdated()` 호출 → 수신 데이터에 `event: menu-updated\n`
+- [ ] T-04-06 `test/watchWorkbook.test.mjs` › `shouldCallOnChangeOnceForRapidWrites` — `watchWorkbook(path, onChange, { debounceMs: 50 })`, 10ms 간격 2회 쓰기, 300ms 대기 → `onChange` 1회, `close()`로 종료
+- [ ] T-04-07 `test/server.test.mjs` › `shouldPushMenuUpdatedWhenWorkbookChanges` — `data/menu.xlsx`를 임시 디렉터리에 복사, `DATA_PATH`로 서버 실행, `/events` 연결 후 파일 재작성 → 2초 안에 `event: menu-updated`
+
+### Green 힌트
+
+- `watchWorkbook`: chokidar `change` 이벤트 → T-04-02의 `debounce`
+- `server.mjs`: `watchWorkbook(DATA_PATH, notifyMenuUpdated, { debounceMs: 300 })`
+
+### Refactor 점검
+
+- 클라이언트 목록 관리(추가, `close` 시 제거)를 `createSseHub()`로 추출합니다.
+- 디바운스 시간 `300`을 이름 있는 상수로 둡니다.
+
+### 기록
+
+- Red:
+- Green:
+- Refactor:
+
+---
+
+## M5 — 클라이언트 렌더링 (선택, 강의 진도에 따라)
+
+- plan.md: 마일스톤 5 (4항목)
+- DOM 없이 테스트하려고 렌더링을 **HTML 문자열을 반환하는 순수 함수**(`public/render.mjs`)로 둡니다.
+- `public/client.js`는 `fetch('/api/menu')` + `EventSource('/events')` + `innerHTML` 연결만 합니다.
+  이 연결 코드는 브라우저에서 확인합니다(`npm start` 후 1080×1920, 1920×1440, 1440×1920, 1080×2160).
+- CSS·HTML은 `.claude/rules/anti-ai-slop.md`를 따릅니다. 취소선·흐림은 CSS `.is-sold-out`에서만 정의합니다.
+- 예상 Red: `ERR_MODULE_NOT_FOUND: public/render.mjs`
+
+### 세부 테스트 체크리스트
+
+- [ ] T-05-01 `test/render.test.mjs` › `shouldFormatPriceWithThousandsSeparatorAndWon` — `formatPrice(4500) === '4,500원'`, `formatPrice(12000) === '12,000원'`
+- [ ] T-05-02 `shouldRenderCategoryHeadingsAndItems` — 그룹 `에스프레소`, 항목 `아메리카노` 4500 → 소제목·메뉴명·`4,500원` 포함, 메뉴명의 `<`는 `&lt;`
+- [ ] T-05-03 `shouldMarkSoldOutItemWithClassAndLabel` — `soldOut: true` 항목에만 `is-sold-out` 클래스와 `품절` 텍스트
+- [ ] T-05-04 `shouldBuildThemeClassName` — `themeClass('deep-green') === 'theme-deep-green'`
+- [ ] T-05-05 `shouldWrapToFirstPageAfterLast` — `nextPageIndex(0, 3) === 1`, `nextPageIndex(2, 3) === 0`
+- [ ] T-05-06 `shouldRotatePagesOnlyWhenAutoRotateIsPositive` — `mock.timers`, `startRotation({ autoRotateSec: 5, pageCount: 3, onChange })` + `tick(10000)` → `onChange` 2회(1, 2). `autoRotateSec: 0` → 0회
+
+### Refactor 점검
+
+- 가격 서식(`원`)이 렌더 계층에만 있는지 확인합니다(데이터/표현 분리).
+- `startRotation`이 `stop()`을 반환해 SSE 재렌더 때 타이머를 정리하는지 확인합니다.
+
+### 기록
+
+- Red:
+- Green:
+- Refactor:
