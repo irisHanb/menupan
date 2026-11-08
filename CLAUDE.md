@@ -46,9 +46,8 @@ npm test         # 전체 테스트 (TDD 필수 — 아래 프로세스 참조)
 npm test -- <패턴>   # 단일 테스트 파일/케이스만 실행
 ```
 
-> 테스트 러너는 아직 미설정이다. 첫 테스트 작성 시 도입한다(권장: Node 내장
-> `node:test` 또는 `vitest`, HTTP/SSE 검증용 `supertest`). 도입 후 이 표를 실제
-> 명령으로 갱신한다.
+> 테스트 러너는 Node 내장 `node:test`다(`"test": "node --test"`). `test/` 아래
+> `*.test.mjs`를 자동으로 찾는다. HTTP/SSE 검증용 `supertest`는 M3에서 도입한다.
 
 ---
 
