@@ -169,8 +169,39 @@ test('shouldDefaultAutoRotateToZeroWhenMissingOrNotNumeric', () => {
 
 test('shouldAssembleFinalShapeWithDefaultsWhenSettingsSheetMissing', () => {
   const result = parseWorkbook(makeWorkbook({ 커피: [HEADER, AMERICANO] }));
-  assert.deepEqual(Object.keys(result).sort(), ['autoRotateSec', 'pages', 'store', 'theme']);
+  assert.deepEqual(Object.keys(result).sort(), ['autoRotateSec', 'device', 'pages', 'store', 'tagline', 'theme']);
   assert.equal(result.store, '');
   assert.equal(result.theme, 'cafe-dark');
   assert.equal(result.autoRotateSec, 0);
+});
+
+// M6 — 결함: Numbers로 저장하면 `내보내기 요약` 시트가 맨 앞에 붙는다(헤더에 메뉴명 없음)
+const NUMBERS_EXPORT_SUMMARY = [
+  ['이 문서는 Numbers에서 내보낸 문서입니다.'],
+  [],
+  ['Numbers 시트 이름', 'Numbers 표 이름', 'Excel 워크시트 이름'],
+  ['커피'],
+  [null, '표 1', '커피'],
+];
+
+test('shouldExcludeSheetsWithoutMenuNameHeader', () => {
+  const { pages } = parseWorkbook(makeWorkbook({ '내보내기 요약': NUMBERS_EXPORT_SUMMARY, 커피: [HEADER, AMERICANO] }));
+  assert.deepEqual(
+    pages.map((page) => page.title),
+    ['커피'],
+    '헤더에 `메뉴명`이 없는 시트는 메뉴 페이지가 아니다',
+  );
+});
+
+// M8 — 디자인 적용: 디바이스·영문태그 설정
+test('shouldReadDeviceAndTaglineFromSettings', () => {
+  const result = parseWithSettings([['디바이스', 'tablet-port'], ['영문태그', 'SPECIALTY COFFEE']]);
+  assert.equal(result.device, 'tablet-port');
+  assert.equal(result.tagline, 'SPECIALTY COFFEE');
+});
+
+test('shouldDefaultDeviceToSignageAndTaglineToEmpty', () => {
+  const result = parseWithSettings([['매장명', '빌런 커피']]);
+  assert.equal(result.device, 'signage');
+  assert.equal(result.tagline, '');
 });

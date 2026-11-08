@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { once } from 'node:events';
-import { mkdtemp, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, writeFile } from 'node:fs/promises';
 import http from 'node:http';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -37,7 +37,14 @@ test('shouldRespondWithEmptyPagesWhenLoaderThrows', async () => {
   });
   const response = await request(app).get('/api/menu');
   assert.equal(response.status, 200, '워크북이 깨져도 500이 아니라 빈 메뉴를 준다');
-  assert.deepEqual(response.body, { store: '', theme: 'cafe-dark', autoRotateSec: 0, pages: [] });
+  assert.deepEqual(response.body, {
+    store: '',
+    theme: 'cafe-dark',
+    autoRotateSec: 0,
+    device: 'signage',
+    tagline: '',
+    pages: [],
+  });
 });
 
 test('shouldServeStaticFilesFromPublicDir', async () => {
@@ -100,4 +107,16 @@ test('shouldPushMenuUpdatedEventToConnectedClients', async () => {
   } finally {
     close();
   }
+});
+
+// M8 — 테마 PNG 에셋 서빙
+test('shouldServeThemeAssetsFromAssetsDir', async () => {
+  const assetsDir = await mkdtemp(path.join(tmpdir(), 'menupan-assets-'));
+  await mkdir(path.join(assetsDir, 'deep-green'));
+  const png = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+  await writeFile(path.join(assetsDir, 'deep-green', 'bg-signage.png'), png);
+  const app = createApp({ loadMenu: () => menuFixture, assetsDir });
+  const response = await request(app).get('/assets/deep-green/bg-signage.png');
+  assert.equal(response.status, 200);
+  assert.match(response.headers['content-type'], /image\/png/);
 });

@@ -11,6 +11,7 @@ const WATCH_DEBOUNCE_MS = 300;
 const app = createApp({
   loadMenu: () => loadMenuFromFile(DATA_PATH),
   publicDir: path.join(import.meta.dirname, 'public'),
+  assetsDir: path.join(import.meta.dirname, 'design/project/assets'),
 });
 const server = app.listen(PORT, () => console.log(`listening on ${server.address().port}`));
 watchWorkbook(DATA_PATH, app.notifyMenuUpdated, { debounceMs: WATCH_DEBOUNCE_MS });

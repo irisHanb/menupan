@@ -4,13 +4,14 @@ import { createSseHub } from './sseHub.mjs';
 
 const MENU_UPDATED_EVENT = 'menu-updated';
 
-export function createApp({ loadMenu, publicDir }) {
+export function createApp({ loadMenu, publicDir, assetsDir }) {
   const app = express();
   app.get('/api/menu', (_req, res) => res.json(loadMenuOrEmpty(loadMenu)));
   const hub = createSseHub();
   app.get('/events', (req, res) => hub.connect(req, res));
   app.notifyMenuUpdated = () => hub.broadcast(MENU_UPDATED_EVENT);
   if (publicDir) app.use(express.static(publicDir));
+  if (assetsDir) app.use('/assets', express.static(assetsDir));
   return app;
 }
 

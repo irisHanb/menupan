@@ -52,6 +52,9 @@
 | M3 | HTTP API                  | 6         | `test/app.test.mjs`, `test/loadMenuFromFile.test.mjs`, `test/server.test.mjs` | DONE |
 | M4 | 파일 감시 + SSE           | 7         | `test/debounce.test.mjs`, `test/app.test.mjs`, `test/watchWorkbook.test.mjs`, `test/server.test.mjs` | DONE |
 | M5 | 클라이언트 렌더링 (선택)  | 6         | `test/render.test.mjs` | DONE |
+| M6 | 결함: 메뉴 헤더 없는 시트 제외 | 1   | `test/parseWorkbook.test.mjs` (+ API 수준 `test/loadMenuFromFile.test.mjs`, `test/server.test.mjs`) | DONE |
+| M7 | 결함: 시트별 페이지 네비게이션 | 4   | `test/render.test.mjs` | DONE |
+| M8 | 결함: 디자인 적용 (테마·디바이스·PNG) | 8 | `test/parseWorkbook.test.mjs`, `test/render.test.mjs`, `test/app.test.mjs`, `test/style.test.mjs` | DONE |
 
 ---
 
@@ -263,3 +266,88 @@
 - Red: `npm test` → tests 34 / pass 33 / fail 1(파일 단위, 테스트 6개). `ERR_MODULE_NOT_FOUND: public/render.mjs`. T-05-06은 `startRotation`이 `stop()`을 반환하는 것까지 요구
 - Green: `public/render.mjs`(렌더 순수 함수 5개, `renderPage`는 중첩 템플릿 한 덩어리) → pass 39 / fail 0. 연결 코드 `public/index.html`·`client.js`·`style.css` 추가: `node --check` 통과, `PORT=3123` 서버에서 `/`·`/client.js`·`/render.mjs`·`/style.css`·`/api/menu` 모두 200. anti-ai-slop 금지 패턴 grep 0건. 브라우저 4개 해상도 육안 확인은 하지 않음
 - Refactor: 2단계, 단계마다 pass 39 / fail 0 — ① Extract Function `renderGroup`·`renderItem`(중첩 템플릿 해체) ② Extract Constant `HTML_ESCAPES` + `escapeHtml` 함수화
+
+---
+
+## 결함 분석 (2026-11-08, M5 완료 후 결과물 검토)
+
+| 증상 | 관찰한 값 | 원인 |
+| --- | --- | --- |
+| 시트별 페이지가 아니라 한 페이지만 보임 | `data/menu.xlsx`(23:06 저장)의 시트 순서가 `내보내기 요약, 커피, 디저트, 음료, _설정` | Numbers로 저장하면 `내보내기 요약` 시트가 맨 앞에 추가됩니다. 파서는 `_`로 시작하지 않는 시트를 모두 페이지로 만들어 이 시트가 0번 페이지가 됩니다(`src/parseWorkbook.mjs` `isPageSheet`). 클라이언트는 `자동전환초=0`이면 0번 페이지만 그리고 페이지를 넘길 수단이 없습니다(`public/client.js` `showPage(0)`) |
+| Excel 수정이 화면에 반영되지 않음 | 서버 경로 정상: 파일 저장 후 SSE `menu-updated` 305ms 만에 도착, `/api/menu`의 `theme` 값 변경 확인. 직접 쓰기·rename·`RENAME_SWAP` 저장 모두 chokidar `change` 발생 | 화면은 0번 페이지(`내보내기 요약`)만 그립니다. 커피·디저트·음료 값을 바꿔도 보이는 곳이 없습니다. `메뉴명` 열이 없는 행은 `hasMenuName`이 `undefined !== ''`로 통과시켜 이름 없는 항목 9개가 표시됩니다. `테마`를 `beige`·`cream` 등으로 바꿔도 CSS가 `cafe-dark`·`deep-green` 2종만 있어 화면이 그대로입니다. `디바이스`·`영문태그`는 파싱하지 않습니다 |
+| `design/project` 디자인 미적용 | 프로토타입: 디바이스 캔버스 4종(1080×1920 등) + `assets/<테마>/{bg,frame}-<디바이스>.png` 레이어 + 영문태그·매장명·구분선·시트명/카테고리 메타·점선 리더 가격 행. 현재 `public/style.css`는 단일 흐름 레이아웃, PNG 0개 사용 | M5 체크리스트에 디자인 항목이 없어 구현 범위에서 빠졌습니다 |
+| 기존 테스트 2개 실패 | `shouldLoadSampleWorkbookFromDisk`, `shouldStartServerAndServeMenu` (pass 37 / fail 2) | 위 첫 번째 원인을 API 수준에서 잡은 회귀입니다. 결함 수정의 API 수준 실패 테스트로 씁니다 |
+
+TDD 스펙에서 빠진 것: 메뉴 헤더가 없는 시트, 메뉴명 셀이 아예 없는 행, 수동 페이지 전환, 디바이스·영문태그 설정, 테마 8종 CSS, PNG 레이어.
+
+---
+
+## M6 — 결함: 메뉴 헤더 없는 시트 제외
+
+- API 수준 실패 테스트(이미 Red): T-03-05 `shouldLoadSampleWorkbookFromDisk`, T-03-06 `shouldStartServerAndServeMenu`
+- 가장 작은 재현 테스트는 아래 2개입니다.
+- 예상 Red: `deepEqual` 실패 `['내보내기 요약', '커피']` vs `['커피']`
+
+### 세부 테스트 체크리스트
+
+- [x] T-06-01 `shouldExcludeSheetsWithoutMenuNameHeader` — Numbers `내보내기 요약` 시트(헤더에 `메뉴명` 없음) + `커피` → 제목 `['커피']`
+- ~~T-06-02 `shouldSkipRowsWhoseMenuNameCellIsMissing`~~ — Red에서 바로 통과해 삭제: `sheet_to_json(defval: '')`이 빈 셀을 `''`로 채워 이미 제외됨. `undefined`는 `메뉴명` 열이 없을 때만 생기며 T-06-01이 다룸
+
+### Refactor 점검
+
+- `isPageSheet`(시트 이름)와 메뉴 헤더 판정이 한 곳에서 읽히는지 확인합니다.
+
+### 기록
+
+- Red: `npm test` → tests 40 / pass 37 / fail 3. T-06-01 `actual: [ '내보내기 요약', '커피' ]` vs `expected: [ '커피' ]`, API 수준 T-03-05·T-03-06도 같은 원인으로 실패
+- Green: 첫 행에 `메뉴명`이 없는 시트를 페이지에서 제외(인라인 filter). pass 40 / fail 0 — API 수준 T-03-05·T-03-06도 통과(실제 Numbers 저장 파일에서 `커피·디저트·음료`)
+- Refactor: Extract Function `isMenuSheet`·`hasMenuHeader` — 시트 분류(접두사 + 헤더)를 한 함수로 합치고 `isPageSheet` 제거. pass 40 / fail 0
+
+---
+
+## M7 — 결함: 시트별 페이지 네비게이션
+
+- 요구사항: `자동전환초=0`이면 수동 전환, 시트 이름 = 페이지(탭) 이름 (`docs/menu-project-requirement.md`)
+- 예상 Red: `renderPageTabs is not a function`
+
+### 세부 테스트 체크리스트
+
+- [x] T-07-01 `shouldRenderOneTabPerPageInSheetOrder` — `renderPageTabs(pages, 0)` → `data-page-index` 0·1·2, 제목 `커피`·`디저트`·`음료` 순
+- [x] T-07-02 `shouldMarkOnlyActiveTabAsCurrent` — `activeIndex 1` → `aria-current="page"` 1개, `디저트` 탭에만
+- [x] T-07-03 `shouldKeepPageIndexAfterRefreshWhenStillValid` — `clampPageIndex(2, 3) === 2`, `clampPageIndex(2, 2) === 0`, `clampPageIndex(0, 0) === 0`
+- [x] T-07-04 `shouldRotateFromGivenStartIndex` — `startRotation({ autoRotateSec: 5, pageCount: 3, startIndex: 2, onChange })` + `tick(5000)` → `onChange(0)`
+
+### 기록
+
+- Red: `npm test` → tests 44 / pass 40 / fail 4. `TypeError: render.renderPageTabs is not a function`(T-07-01·02), `render.clampPageIndex is not a function`(T-07-03), `actual: [ 1 ]` vs `[ 0 ]`(T-07-04, `startIndex` 무시)
+- Green: `renderPageTabs`·`clampPageIndex`·`startRotation({ startIndex })` 추가. `client.js`: 탭 클릭으로 페이지 전환, SSE 갱신 시 보던 페이지 유지, 수동 전환 후 순환 재시작. 페이지 2개 이상일 때만 탭 표시. pass 44 / fail 0, `node --check` 통과
+- Refactor: Extract Function `renderTab`(활성 표시 분리, `renderItem`과 같은 구조). pass 44 / fail 0
+
+---
+
+## M8 — 결함: 디자인 적용 (테마·디바이스·PNG)
+
+- 근거: `design/project/메뉴판 템플릿 시스템.dc.html`의 `THEMES`·`DEVICES`·`renderVals()`
+- 프로토타입에 색 토큰이 없는 테마 4종(`cafe-dark`, `bistro-light`, `forest-dark`, `forest-light`)은 배경 PNG 썸네일에서 색을 추정했습니다.
+- `.claude/rules/anti-ai-slop.md` 우선 적용: 품절 배지 radius `999px` → `4px`, 사진 슬롯(`repeating-linear-gradient` 자리표시자)과 미리보기 무대 그림자 제외
+- 에셋 71MB는 복사하지 않고 `design/project/assets`를 `/assets`로 서빙합니다.
+- 스펙 확장: 최종 출력에 `device`·`tagline`이 추가되므로 T-02-06·T-03-03의 기대 키를 함께 갱신합니다.
+- 예상 Red: `AssertionError: undefined !== 'tablet-port'`, `deviceSpec is not a function`
+
+### 세부 테스트 체크리스트
+
+- [x] T-08-01 `shouldReadDeviceAndTaglineFromSettings` — `디바이스=tablet-port`, `영문태그=SPECIALTY COFFEE` → `device`, `tagline`
+- [x] T-08-02 `shouldDefaultDeviceToSignageAndTaglineToEmpty` — 행 없음 → `device === 'signage'`, `tagline === ''`
+- [x] T-08-03 `shouldDescribeDeviceCanvas` — `deviceSpec('tablet-land')` → `{ width: 1920, height: 1440, columns: 2 }`, 미지원 값 → signage `{ 1080, 1920, 1 }`
+- [x] T-08-04 `shouldBuildThemeAssetUrls` — `assetUrls('deep-green', 'tablet-port')` → `bg`·`frame` PNG 경로
+- [x] T-08-05 `shouldFitCanvasInsideViewport` — `fitScale({ width: 1080, height: 1920 }, { width: 540, height: 1200 }) === 0.5`
+- [x] T-08-06 `shouldRenderBoardHeaderWithTaglineStoreAndPageMeta` — `renderBoard(menu, 1)` → 영문태그·매장명·`디저트`·카테고리 메타(`케이크 · 베이커리`)·가격 리더 요소
+- [x] T-08-07 `shouldServeThemeAssetsFromAssetsDir` — `createApp({ assetsDir })` → `GET /assets/deep-green/bg-signage.png` 200 `image/png`
+- [x] T-08-08 `shouldDefineStyleForEveryAssetTheme` — `design/project/assets`의 테마 폴더 8개마다 `public/style.css`에 `.theme-<테마>` 규칙
+
+### 기록
+
+- Red: `npm test` → tests 52 / pass 42 / fail 10. 신규 8개: `TypeError: render.deviceSpec is not a function` 등 함수 없음 4건, `device`·`tagline` `undefined` 2건, `/assets` 404 1건, `CSS 토큰이 없는 테마: beige, bistro-light, cream, forest-dark, forest-light, light-olive` 1건. 스펙 확장으로 기대값을 바꾼 기존 T-02-06·T-03-03 2건
+- Green: `device`·`tagline` 파싱, `/assets` → `design/project/assets` 서빙, `renderBoard`·`deviceSpec`(if 분기)·`assetUrls`·`fitScale`, 디바이스 캔버스 + bg/frame PNG 레이어 + 테마 8종 토큰 CSS. pass 52 / fail 0. headless Chrome(DevTools)로 Numbers 저장 실데이터 확인: 탭 `커피·디저트·음료`, 디저트 탭 클릭 후 파일 저장 1.5초 안에 `theme-deep-green`→`theme-cream`, 가격 6,500원→7,700원, 보던 페이지 유지
+- Refactor: 2단계, 단계마다 pass 52 / fail 0 — ① Replace Conditional with Lookup Table: `deviceSpec` if 분기 → `DEVICES` 표 + `DEFAULT_DEVICE` ② Remove Duplication: `renderBoard`가 시트명·메타·그룹을 다시 그리던 코드를 `renderPage` 조합으로 교체(클라이언트에서 쓰이지 않던 `renderPage`가 화면 경로에 들어옴). 리팩터링 후 headless Chrome 캡처로 화면 동일 확인
+
