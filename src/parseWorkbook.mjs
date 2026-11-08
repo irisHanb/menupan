@@ -3,10 +3,17 @@ import * as XLSX from 'xlsx';
 const COLUMNS = { name: '메뉴명', price: '가격', desc: '설명', soldOut: '품절', category: '카테고리' };
 const SOLD_OUT_MARK = 'Y';
 const NON_PAGE_PREFIX = '_';
-const SETTINGS_SHEET = '_설정';
-const SETTINGS_COLUMNS = { key: '항목', value: '값' };
-const SETTING_KEYS = { store: '매장명', theme: '테마', autoRotateSec: '자동전환초', device: '디바이스', tagline: '영문태그' };
-const DEFAULT_SETTINGS = { store: '', theme: 'cafe-dark', autoRotateSec: 0, device: 'signage', tagline: '' };
+export const SETTINGS_SHEET = '_설정';
+export const SETTINGS_COLUMNS = { key: '항목', value: '값' };
+export const SETTING_KEYS = {
+  store: '매장명',
+  theme: '테마',
+  autoRotateSec: '자동전환초',
+  device: '디바이스',
+  tagline: '영문태그',
+  displaySheet: '표시시트',
+};
+const DEFAULT_SETTINGS = { store: '', theme: 'cafe-dark', autoRotateSec: 0, device: 'signage', tagline: '', displaySheet: '' };
 export const EMPTY_MENU = Object.freeze({ ...DEFAULT_SETTINGS, pages: [] });
 
 export function parseWorkbook(workbook) {
@@ -21,11 +28,17 @@ function toSettings(raw) {
   const autoRotateSec = Number(raw[SETTING_KEYS.autoRotateSec]);
   return {
     store: raw[SETTING_KEYS.store] ?? DEFAULT_SETTINGS.store,
-    theme: raw[SETTING_KEYS.theme] ?? DEFAULT_SETTINGS.theme,
+    theme: normalizeKey(raw[SETTING_KEYS.theme] ?? DEFAULT_SETTINGS.theme),
     autoRotateSec: Number.isFinite(autoRotateSec) ? autoRotateSec : DEFAULT_SETTINGS.autoRotateSec,
-    device: raw[SETTING_KEYS.device] ?? DEFAULT_SETTINGS.device,
+    device: normalizeKey(raw[SETTING_KEYS.device] ?? DEFAULT_SETTINGS.device),
     tagline: raw[SETTING_KEYS.tagline] ?? DEFAULT_SETTINGS.tagline,
+    displaySheet: raw[SETTING_KEYS.displaySheet] ?? DEFAULT_SETTINGS.displaySheet,
   };
+}
+
+// 테마·디바이스는 폴더명·CSS 클래스와 맞춰야 하므로 소문자로 정리한다(Numbers가 `Cream`처럼 저장).
+function normalizeKey(value) {
+  return String(value).trim().toLowerCase();
 }
 
 // `항목 | 값` 키-값 시트를 객체로 바꾼다. 시트가 없으면 빈 객체.

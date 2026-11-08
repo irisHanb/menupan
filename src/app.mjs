@@ -1,12 +1,15 @@
 import express from 'express';
 import { EMPTY_MENU } from './parseWorkbook.mjs';
 import { createSseHub } from './sseHub.mjs';
+import { adminRouter } from './adminRoutes.mjs';
 
 const MENU_UPDATED_EVENT = 'menu-updated';
 
-export function createApp({ loadMenu, publicDir, assetsDir }) {
+export function createApp({ loadMenu, publicDir, assetsDir, admin }) {
   const app = express();
-  app.get('/api/menu', (_req, res) => res.json(loadMenuOrEmpty(loadMenu)));
+  const getMenu = () => loadMenuOrEmpty(loadMenu);
+  if (admin) app.use(adminRouter({ admin, getMenu }));
+  app.get('/api/menu', (_req, res) => res.json(getMenu()));
   const hub = createSseHub();
   app.get('/events', (req, res) => hub.connect(req, res));
   app.notifyMenuUpdated = () => hub.broadcast(MENU_UPDATED_EVENT);

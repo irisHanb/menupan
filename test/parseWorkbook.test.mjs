@@ -169,7 +169,7 @@ test('shouldDefaultAutoRotateToZeroWhenMissingOrNotNumeric', () => {
 
 test('shouldAssembleFinalShapeWithDefaultsWhenSettingsSheetMissing', () => {
   const result = parseWorkbook(makeWorkbook({ 커피: [HEADER, AMERICANO] }));
-  assert.deepEqual(Object.keys(result).sort(), ['autoRotateSec', 'device', 'pages', 'store', 'tagline', 'theme']);
+  assert.deepEqual(Object.keys(result).sort(), ['autoRotateSec', 'device', 'displaySheet', 'pages', 'store', 'tagline', 'theme']);
   assert.equal(result.store, '');
   assert.equal(result.theme, 'cafe-dark');
   assert.equal(result.autoRotateSec, 0);
@@ -204,4 +204,17 @@ test('shouldDefaultDeviceToSignageAndTaglineToEmpty', () => {
   const result = parseWithSettings([['매장명', '빌런 커피']]);
   assert.equal(result.device, 'signage');
   assert.equal(result.tagline, '');
+});
+
+// M9 — 표시시트 설정
+test('shouldReadDisplaySheetFromSettings', () => {
+  assert.equal(parseWithSettings([['표시시트', '디저트']]).displaySheet, '디저트');
+  assert.equal(parseWithSettings([['매장명', '빌런 커피']]).displaySheet, '', '행이 없으면 빈 값');
+});
+
+// M13 — Numbers에서 대소문자·공백이 섞여 저장된 값 (실제 data/menu.xlsx: 테마=Cream)
+test('shouldNormalizeThemeAndDeviceCase', () => {
+  const result = parseWithSettings([['테마', 'Cream'], ['디바이스', ' Tablet-Port ']]);
+  assert.equal(result.theme, 'cream');
+  assert.equal(result.device, 'tablet-port');
 });

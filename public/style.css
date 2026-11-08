@@ -6,14 +6,14 @@
  * 테마 토큰 text/sub/accent: light-olive·deep-green·cream·beige는 프로토타입 값,
  * cafe-dark·bistro-light·forest-dark·forest-light는 배경 PNG에서 추정한 값이다.
  */
-body.theme-light-olive { --text: #33381f; --sub: #6e7350; --accent: #6f7637; }
-body.theme-deep-green { --text: #f0ecd8; --sub: #a9bcab; --accent: #c8a24a; }
-body.theme-cream { --text: #3c3120; --sub: #897354; --accent: #b5602f; }
-body.theme-beige { --text: #352a1a; --sub: #827049; --accent: #7a8246; }
-body.theme-cafe-dark { --text: #f2e8d8; --sub: #b3a48a; --accent: #d9a35b; }
-body.theme-bistro-light { --text: #2e2620; --sub: #7d6e60; --accent: #a8452f; }
-body.theme-forest-dark { --text: #e6eee4; --sub: #9fb3a2; --accent: #b9c27a; }
-body.theme-forest-light { --text: #26332a; --sub: #66786a; --accent: #4f7a55; }
+.theme-light-olive { --text: #33381f; --sub: #6e7350; --accent: #6f7637; }
+.theme-deep-green { --text: #f0ecd8; --sub: #a9bcab; --accent: #c8a24a; }
+.theme-cream { --text: #3c3120; --sub: #897354; --accent: #b5602f; }
+.theme-beige { --text: #352a1a; --sub: #827049; --accent: #7a8246; }
+.theme-cafe-dark { --text: #f2e8d8; --sub: #b3a48a; --accent: #d9a35b; }
+.theme-bistro-light { --text: #2e2620; --sub: #7d6e60; --accent: #a8452f; }
+.theme-forest-dark { --text: #e6eee4; --sub: #9fb3a2; --accent: #b9c27a; }
+.theme-forest-light { --text: #26332a; --sub: #66786a; --accent: #4f7a55; }
 
 * {
   box-sizing: border-box;
@@ -187,33 +187,4 @@ body {
   white-space: nowrap;
   color: #fff;
   background: var(--accent);
-}
-
-/* 시트 = 페이지 탭. 캔버스 밖 막대에 둬서 디자인을 가리지 않는다 */
-.tabs-bar:empty {
-  display: none;
-}
-
-.page-tabs {
-  display: flex;
-  justify-content: center;
-  gap: 8px;
-  padding: 10px 16px;
-  border-top: 1px solid #2c2c2c;
-}
-
-.page-tab {
-  padding: 8px 18px;
-  border: 1px solid #3a3a3a;
-  border-radius: 6px;
-  font: 600 15px 'Pretendard', sans-serif;
-  color: #c9c9c9;
-  background: transparent;
-  cursor: pointer;
-}
-
-.page-tab[aria-current='page'] {
-  border-color: #e8e8e8;
-  color: #141414;
-  background: #e8e8e8;
 }

@@ -55,6 +55,11 @@
 | M6 | 결함: 메뉴 헤더 없는 시트 제외 | 1   | `test/parseWorkbook.test.mjs` (+ API 수준 `test/loadMenuFromFile.test.mjs`, `test/server.test.mjs`) | DONE |
 | M7 | 결함: 시트별 페이지 네비게이션 | 4   | `test/render.test.mjs` | DONE |
 | M8 | 결함: 디자인 적용 (테마·디바이스·PNG) | 8 | `test/parseWorkbook.test.mjs`, `test/render.test.mjs`, `test/app.test.mjs`, `test/style.test.mjs` | DONE |
+| M9 | Excel 설정 저장 (`_설정` 쓰기) | 5 | `test/saveSettings.test.mjs`, `test/parseWorkbook.test.mjs` | DONE |
+| M10 | 어드민 인증 (`/admin`, admin/1234) | 5 | `test/admin.test.mjs` | DONE |
+| M11 | 어드민 설정 API (검증 → Excel 저장) | 6 | `test/admin.test.mjs`, `test/validateSettings.test.mjs` | DONE |
+| M12 | 어드민 화면 (디자인 프로토타입 방식) | 4 | `test/adminView.test.mjs`, `test/admin.test.mjs` | DONE |
+| M13 | 프론트 키오스크화 (메뉴판만 전체 크기) | 3 | `test/render.test.mjs`, `test/front.test.mjs`, `test/parseWorkbook.test.mjs` | DONE |
 
 ---
 
@@ -314,7 +319,7 @@ TDD 스펙에서 빠진 것: 메뉴 헤더가 없는 시트, 메뉴명 셀이 �
 
 - [x] T-07-01 `shouldRenderOneTabPerPageInSheetOrder` — `renderPageTabs(pages, 0)` → `data-page-index` 0·1·2, 제목 `커피`·`디저트`·`음료` 순
 - [x] T-07-02 `shouldMarkOnlyActiveTabAsCurrent` — `activeIndex 1` → `aria-current="page"` 1개, `디저트` 탭에만
-- [x] T-07-03 `shouldKeepPageIndexAfterRefreshWhenStillValid` — `clampPageIndex(2, 3) === 2`, `clampPageIndex(2, 2) === 0`, `clampPageIndex(0, 0) === 0`
+- [x] ~~T-07-03 `shouldKeepPageIndexAfterRefreshWhenStillValid`~~ (M13 Refactor에서 삭제: 프론트 탭이 없어져 `clampPageIndex`를 쓰는 곳이 0곳, `initialPageIndex`가 대체) — `clampPageIndex(2, 3) === 2`, `clampPageIndex(2, 2) === 0`, `clampPageIndex(0, 0) === 0`
 - [x] T-07-04 `shouldRotateFromGivenStartIndex` — `startRotation({ autoRotateSec: 5, pageCount: 3, startIndex: 2, onChange })` + `tick(5000)` → `onChange(0)`
 
 ### 기록
@@ -350,4 +355,103 @@ TDD 스펙에서 빠진 것: 메뉴 헤더가 없는 시트, 메뉴명 셀이 �
 - Red: `npm test` → tests 52 / pass 42 / fail 10. 신규 8개: `TypeError: render.deviceSpec is not a function` 등 함수 없음 4건, `device`·`tagline` `undefined` 2건, `/assets` 404 1건, `CSS 토큰이 없는 테마: beige, bistro-light, cream, forest-dark, forest-light, light-olive` 1건. 스펙 확장으로 기대값을 바꾼 기존 T-02-06·T-03-03 2건
 - Green: `device`·`tagline` 파싱, `/assets` → `design/project/assets` 서빙, `renderBoard`·`deviceSpec`(if 분기)·`assetUrls`·`fitScale`, 디바이스 캔버스 + bg/frame PNG 레이어 + 테마 8종 토큰 CSS. pass 52 / fail 0. headless Chrome(DevTools)로 Numbers 저장 실데이터 확인: 탭 `커피·디저트·음료`, 디저트 탭 클릭 후 파일 저장 1.5초 안에 `theme-deep-green`→`theme-cream`, 가격 6,500원→7,700원, 보던 페이지 유지
 - Refactor: 2단계, 단계마다 pass 52 / fail 0 — ① Replace Conditional with Lookup Table: `deviceSpec` if 분기 → `DEVICES` 표 + `DEFAULT_DEVICE` ② Remove Duplication: `renderBoard`가 시트명·메타·그룹을 다시 그리던 코드를 `renderPage` 조합으로 교체(클라이언트에서 쓰이지 않던 `renderPage`가 화면 경로에 들어옴). 리팩터링 후 headless Chrome 캡처로 화면 동일 확인
+
+---
+
+## 어드민 요구사항 (2026-11-08)
+
+- `/admin`에 `admin/1234`로 로그인합니다. 환경변수 `ADMIN_USER`·`ADMIN_PASSWORD`로 바꿀 수 있습니다.
+- `design/project/메뉴판 템플릿 시스템.dc.html`처럼 테마·디바이스 버튼과 미리보기 무대(stage)를 제공하고, `_설정` 값(매장명·영문태그·자동전환초·표시시트)을 편집합니다.
+- 저장하면 `data/menu.xlsx`의 `_설정` 시트에 씁니다. 파일 감시와 SSE가 프론트를 갱신합니다. 설정 값의 출처는 Excel 하나입니다.
+- `/`는 설정대로 메뉴판만 전체 크기로 출력합니다. 탭과 옵션 UI는 두지 않습니다.
+- 새 `_설정` 키 `표시시트`: `자동전환초=0`일 때 보여 줄 시트입니다. 순환할 때는 이 시트에서 시작합니다.
+
+## M9 — Excel 설정 저장
+
+- 예상 Red: `ERR_MODULE_NOT_FOUND: src/saveSettings.mjs`
+
+### 세부 테스트 체크리스트
+
+- [x] T-09-01 `shouldReadDisplaySheetFromSettings` — `표시시트=디저트` → `displaySheet === '디저트'`, 행이 없으면 `''`
+- [x] T-09-02 `shouldUpdateExistingSettingRowsInWorkbookFile` — `saveSettings(file, { theme: 'cream', autoRotateSec: 7 })` 후 다시 읽으면 `theme`·`autoRotateSec`만 바뀌고 `store`는 유지
+- [x] T-09-03 `shouldAppendSettingRowsThatDoNotExistYet` — `표시시트` 행이 없을 때 `{ displaySheet: '디저트' }` 저장 → 다시 읽으면 `'디저트'`
+- [x] T-09-04 `shouldCreateSettingsSheetWhenMissing` — `_설정` 시트가 없는 파일에 저장 → `store` 반영, 페이지 목록 불변
+- [x] T-09-05 `shouldKeepMenuSheetsIntactAfterSave` — 저장 전후 `pages` deepEqual
+
+### 기록
+
+- Red: `npm test` → tests 54 / pass 50 / fail 4. `ERR_MODULE_NOT_FOUND: src/saveSettings.mjs`(T-09-02~05), `displaySheet` `undefined`(T-09-01), 스펙 확장으로 기대 키를 바꾼 T-02-06·T-03-03
+- Green: `표시시트` 파싱, `src/saveSettings.mjs`(읽기 → `_설정` 행 갱신/추가/시트 생성 → 같은 폴더 임시 파일에 쓰고 rename). pass 57 / fail 0. 실제 Numbers 저장 파일 사본에서 시트 5개·페이지 3개 유지 확인
+- Refactor: Extract Function `readSettingRows`·`upsertSettingRows`·`replaceSettingsSheet`·`writeWorkbookAtomically`(각 단계 의도를 주석 한 줄로). pass 57 / fail 0
+
+## M10 — 어드민 인증
+
+- 예상 Red: `expected 302, got 404`
+
+### 세부 테스트 체크리스트
+
+- [x] T-10-01 `shouldRedirectAnonymousAdminToLogin` — `GET /admin` → `302 Location: /admin/login`
+- [x] T-10-02 `shouldServeLoginForm` — `GET /admin/login` → `200`, `<form` + `password` 입력
+- [x] T-10-03 `shouldRejectWrongCredentials` — `POST /admin/login` `admin/0000` → `401`, `Set-Cookie` 없음
+- [x] T-10-04 `shouldStartSessionWithCorrectCredentials` — `admin/1234` → `303 /admin`, 쿠키 `HttpOnly; SameSite=Strict`, 그 쿠키로 `GET /admin` → `200`
+- [x] T-10-05 `shouldEndSessionOnLogout` — `POST /admin/logout` 후 같은 쿠키로 `GET /admin` → `302`
+
+### 기록
+
+- Red: `npm test` → tests 62 / pass 57 / fail 5. 5개 모두 `404 !== 302`·`404 !== 200` 등 라우트 없음
+- Green: `createApp({ admin })`일 때 `/admin`(세션 없으면 302), `/admin/login` GET/POST, `/admin/logout`. 세션은 메모리 `Set` + `randomUUID` 쿠키(`HttpOnly; SameSite=Strict; Path=/admin`). 화면 HTML은 임시 문자열. pass 62 / fail 0
+- Refactor: Extract Module `src/adminAuth.mjs`(`createAdminAuth`: `isLoggedIn`·`login`·`logout`, 쿠키 이름·속성 상수). 계정 비교를 SHA-256 + `timingSafeEqual`로 교체(출력 동일, 비교 시간 일정). pass 62 / fail 0
+
+## M11 — 어드민 설정 API
+
+- 예상 Red: `validateSettings is not a function`, `expected 401, got 404`
+
+### 세부 테스트 체크리스트
+
+- [x] T-11-01 `shouldRejectSettingsApiWithoutSession` — `GET /admin/api/settings` → `401`
+- [x] T-11-02 `shouldReturnCurrentSettingsWithChoices` — 로그인 후 → `settings`·`sheets`·`themes`(8)·`devices`(4)
+- [x] T-11-03 `shouldSaveValidSettingsToWorkbook` — `POST` 유효 값 → `200`, 주입한 `saveSettings`가 정규화된 값(`autoRotateSec` 숫자)으로 1회 호출
+- [x] T-11-04 `shouldRejectInvalidSettingsWithoutSaving` — 없는 테마 → `400` + `errors.theme`, `saveSettings` 0회
+- [x] T-11-05 `shouldValidateEachSettingField` — `validateSettings` 단위: 음수·소수 `autoRotateSec`, 없는 디바이스, 없는 표시시트, 100자 넘는 매장명 → 각 필드 오류
+- [x] T-11-06 `shouldListEveryAssetThemeWithLabels` — `public/themes.mjs`의 `THEMES` 키 = `design/project/assets` 폴더 8개, 각 항목에 `label`·`ko`·`accent` (API·검증의 테마 목록 출처라 M12에서 앞당김)
+
+### 기록
+
+- Red: `npm test` → tests 67 / pass 62 / fail 5(파일 단위, 테스트 6개). API 4개 `404 !== 401`·`404 !== 200`·`404 !== 400`, `ERR_MODULE_NOT_FOUND: src/validateSettings.mjs`(T-11-05·06)
+- Green: `public/themes.mjs`(8종 라벨·accent), `DEVICE_OPTIONS`(라벨·해상도), `src/validateSettings.mjs`, `GET/POST /admin/api/settings`(세션 없으면 401, 검증 실패 400, 저장 실패 500), `server.mjs`에 `ADMIN_USER`·`ADMIN_PASSWORD`(기본 admin/1234) + `saveSettings(DATA_PATH)` 결선. pass 68 / fail 0
+- Refactor: Extract Module `src/adminRoutes.mjs`(`adminRouter({ admin, getMenu })`) — `app.mjs`는 조립만 담당. 두 API의 401 검사 중복을 `requireSession` 미들웨어로 합침. Extract Function `settingsOf`·`sheetTitlesOf`·`choicesOf`. pass 68 / fail 0
+
+## M12 — 어드민 화면
+
+- 프로토타입 컨트롤(테마 버튼: 색 점 + 영문/한글 이름, 디바이스 버튼, 미리보기 무대, PNG 경로·해상도 캡션)을 옮깁니다. 색 그림자·`transition: all`은 규칙상 뺍니다.
+- 예상 Red: `ERR_MODULE_NOT_FOUND: public/admin-view.mjs`
+
+### 세부 테스트 체크리스트
+
+- [x] T-12-02 `shouldMarkActiveThemeOption` — `renderThemeOptions(THEMES, 'cream')` → 버튼 8개, `aria-pressed="true"`는 `cream`만
+- [x] T-12-03 `shouldListDeviceOptionsWithResolution` — `renderDeviceOptions('mobile')` → 4개, `1080 × 2160` 표기, `mobile`만 활성
+- [x] T-12-04 `shouldOverlayDraftSettingsOnMenuForPreview` — `previewMenu(menu, draft)` → 초안 값 반영, 원본 `menu` 불변
+- [x] T-12-05 `shouldServeAdminScreenAfterLogin` — 로그인 후 `GET /admin` HTML에 `admin.js`·`stage`, `GET /admin.js` `200`
+
+### 기록
+
+- Red: `npm test` → tests 70 / pass 68 / fail 2(파일 단위, 테스트 4개). `ERR_MODULE_NOT_FOUND: public/admin-view.mjs`(T-12-02~04), `/admin` HTML에 `admin.js` 없음(T-12-05)
+- Green: `public/admin-view.mjs`(테마·디바이스 버튼, `previewMenu`), `src/views/admin.html`·`login.html`, `public/admin.js`(초안 편집 → 무대 미리보기, 저장 POST, 401이면 로그인으로), `public/admin.css`. 테마 토큰 선택자를 `body.theme-*` → `.theme-*`로 바꿔 미리보기 캔버스에도 적용. pass 72 / fail 0
+- Refactor: 2단계, 단계마다 pass 72 / fail 0 — ① Extract Function `renderOption`(테마·디바이스 버튼 템플릿 중복 제거, `aria-pressed` 한 곳) ② Extract Constant `LOGIN_TEMPLATE`(요청마다 파일 읽던 것을 모듈 로드 시 1회로)
+
+## M13 — 프론트 키오스크화
+
+- 예상 Red: `initialPageIndex is not a function`
+
+### 세부 테스트 체크리스트
+
+- [x] T-13-01 `shouldStartAtDisplaySheet` — `initialPageIndex(pages, '디저트') === 1`, 없는 이름·빈 값 → `0`
+- [x] T-13-02 `shouldRenderOnlyMenuBoardOnFront` — `public/index.html`에 탭·옵션 UI(`id="tabs"`) 없음, `canvas`만
+- [x] T-13-03 `shouldNormalizeThemeAndDeviceCase` — Numbers에서 `테마=Cream`, `디바이스= Tablet-Port `로 저장된 값 → `cream`, `tablet-port` (실제 `data/menu.xlsx`가 `Cream`이라 PNG 404·CSS 미적용)
+
+### 기록
+
+- Red: `npm test` → tests 75 / pass 72 / fail 3. `render.initialPageIndex is not a function`, `index.html`에 `id="tabs"` 있음, `'Cream' !== 'cream'`
+- Green: `initialPageIndex`, 테마·디바이스 `trim().toLowerCase()`, `index.html`에서 탭 제거, `client.js`는 설정대로 캔버스만 그리고 표시시트부터 순환. pass 75 / fail 0
+- Refactor: 3단계, 단계마다 fail 0 — ① Remove Dead Code `clampPageIndex` + T-07-03(사용처 0곳) tests 75→74 ② 프론트 탭 CSS 삭제(어드민 `.option-row` 규칙만 유지) ③ Extract Function `normalizeKey`. pass 74 / fail 0
 

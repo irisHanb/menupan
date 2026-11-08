@@ -43,6 +43,7 @@ test('shouldRespondWithEmptyPagesWhenLoaderThrows', async () => {
     autoRotateSec: 0,
     device: 'signage',
     tagline: '',
+    displaySheet: '',
     pages: [],
   });
 });

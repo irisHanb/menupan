@@ -89,12 +89,6 @@ test('shouldMarkOnlyActiveTabAsCurrent', () => {
   assert.deepEqual(current, ['디저트']);
 });
 
-test('shouldKeepPageIndexAfterRefreshWhenStillValid', () => {
-  assert.equal(render.clampPageIndex(2, 3), 2, '보던 페이지가 아직 있으면 유지');
-  assert.equal(render.clampPageIndex(2, 2), 0, '시트가 줄어 없어지면 첫 페이지');
-  assert.equal(render.clampPageIndex(0, 0), 0);
-});
-
 test('shouldRotateFromGivenStartIndex', (t) => {
   t.mock.timers.enable({ apis: ['setInterval'] });
   const onChange = t.mock.fn();
@@ -152,4 +146,11 @@ test('shouldRenderBoardHeaderWithTaglineStoreAndPageMeta', () => {
   assert.match(html, /티라미수/);
   assert.match(html, /class="item-leader"/, '메뉴명과 가격 사이 점선 리더');
   assert.doesNotMatch(html, /아메리카노/, '다른 페이지 항목은 그리지 않는다');
+});
+
+// M13 — 프론트 키오스크: 어드민에서 고른 표시시트부터 보여 준다
+test('shouldStartAtDisplaySheet', () => {
+  assert.equal(render.initialPageIndex(SHEET_PAGES, '디저트'), 1);
+  assert.equal(render.initialPageIndex(SHEET_PAGES, '없는 시트'), 0);
+  assert.equal(render.initialPageIndex(SHEET_PAGES, ''), 0);
 });

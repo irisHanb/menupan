@@ -5,7 +5,7 @@ export function formatPrice(price) {
 const HTML_ESCAPES = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
 
 // Excel에서 온 문자열은 innerHTML로 들어가므로 반드시 이스케이프한다.
-function escapeHtml(text) {
+export function escapeHtml(text) {
   return String(text).replace(/[&<>"']/g, (char) => HTML_ESCAPES[char]);
 }
 
@@ -38,6 +38,13 @@ const DEVICES = {
   mobile: { width: 1080, height: 2160, columns: 1 },
 };
 const DEFAULT_DEVICE = 'signage';
+const DEVICE_LABELS = {
+  signage: '사이니지 (세로)',
+  'tablet-land': '태블릿 (가로)',
+  'tablet-port': '태블릿 (세로)',
+  mobile: '모바일',
+};
+export const DEVICE_OPTIONS = Object.entries(DEVICES).map(([key, spec]) => ({ key, label: DEVICE_LABELS[key], ...spec }));
 
 export function deviceSpec(device) {
   return DEVICES[device] ?? DEVICES[DEFAULT_DEVICE];
@@ -60,8 +67,8 @@ function renderTab(title, index, isActive) {
   return `<button type="button" class="page-tab" data-page-index="${index}"${current}>${escapeHtml(title)}</button>`;
 }
 
-export function clampPageIndex(index, pageCount) {
-  return index < pageCount ? index : 0;
+export function initialPageIndex(pages, displaySheet) {
+  return Math.max(0, pages.findIndex((page) => page.title === displaySheet));
 }
 
 export function themeClass(theme) {

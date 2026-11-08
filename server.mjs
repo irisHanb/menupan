@@ -2,6 +2,7 @@ import path from 'node:path';
 import { createApp } from './src/app.mjs';
 import { loadMenuFromFile } from './src/loadMenuFromFile.mjs';
 import { watchWorkbook } from './src/watchWorkbook.mjs';
+import { saveSettings } from './src/saveSettings.mjs';
 
 const DATA_PATH = process.env.DATA_PATH ?? path.join(import.meta.dirname, 'data/menu.xlsx');
 const PORT = Number(process.env.PORT ?? 3000);
@@ -12,6 +13,11 @@ const app = createApp({
   loadMenu: () => loadMenuFromFile(DATA_PATH),
   publicDir: path.join(import.meta.dirname, 'public'),
   assetsDir: path.join(import.meta.dirname, 'design/project/assets'),
+  admin: {
+    username: process.env.ADMIN_USER ?? 'admin',
+    password: process.env.ADMIN_PASSWORD ?? '1234',
+    saveSettings: (settings) => saveSettings(DATA_PATH, settings),
+  },
 });
 const server = app.listen(PORT, () => console.log(`listening on ${server.address().port}`));
 watchWorkbook(DATA_PATH, app.notifyMenuUpdated, { debounceMs: WATCH_DEBOUNCE_MS });
