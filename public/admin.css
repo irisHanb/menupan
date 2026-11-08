@@ -1,0 +1,291 @@
+/*
+ * 어드민: design/project/메뉴판 템플릿 시스템.dc.html 의 바깥 화면(머리말·컨트롤·무대·캡션)을 옮김.
+ * 폰트는 프로토타입과 같다(제목 Nanum Myeongjo, 본문 Pretendard).
+ * 규칙 적용: 활성 버튼의 색 그림자, transition: all 은 넣지 않았다.
+ */
+body.admin {
+  margin: 0;
+  min-height: 100vh;
+  padding: 40px 40px 64px;
+  background: #e3e1da;
+  color: #26221d;
+  font-family: 'Pretendard', sans-serif;
+}
+
+.admin-page {
+  max-width: 1080px;
+  margin: 0 auto;
+}
+
+.admin-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 24px;
+  margin-bottom: 28px;
+}
+
+.admin-eyebrow {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: #9a8f7e;
+}
+
+.admin-title {
+  margin: 8px 0 6px;
+  font: 800 38px 'Nanum Myeongjo', serif;
+  letter-spacing: -0.5px;
+}
+
+.admin-lead {
+  max-width: 640px;
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.6;
+  color: #6f675b;
+}
+
+.admin-lead strong {
+  color: #3c372f;
+}
+
+.admin-lead code,
+.admin-caption code {
+  padding: 2px 6px;
+  border-radius: 4px;
+  font: 12px 'SFMono-Regular', Consolas, monospace;
+  color: #4a463d;
+  background: #cfcdc5;
+}
+
+.controls {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 22px;
+}
+
+.control-title {
+  margin: 0 0 9px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: #9a8f7e;
+}
+
+.control-hint {
+  margin-left: 8px;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.option-row,
+.option-row .page-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+
+.option,
+.option-row .page-tab {
+  padding: 9px 14px;
+  border: 1.5px solid #d2d0c8;
+  border-radius: 8px;
+  font: 600 13px 'Pretendard', sans-serif;
+  color: #5b554b;
+  background: #edece7;
+  cursor: pointer;
+  transition: background-color 120ms, border-color 120ms;
+}
+
+.theme-option {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+  min-width: 128px;
+}
+
+.theme-option-name {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.theme-dot {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.theme-label {
+  font-size: 13.5px;
+  font-weight: 700;
+}
+
+.theme-ko,
+.device-dim {
+  font-size: 11px;
+  font-weight: 500;
+  color: #9a9486;
+}
+
+.device-option {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
+
+.option[aria-pressed='true'],
+.option-row .page-tab[aria-current='page'] {
+  border-color: #2a2722;
+  color: #f3efe7;
+  background: #2a2722;
+}
+
+.option[aria-pressed='true'] .theme-ko,
+.option[aria-pressed='true'] .device-dim {
+  color: #c9c2b4;
+}
+
+.field-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 220px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #6f675b;
+}
+
+.field-narrow {
+  min-width: 120px;
+}
+
+.field input {
+  padding: 9px 11px;
+  border: 1.5px solid #d2d0c8;
+  border-radius: 8px;
+  font: 500 14px 'Pretendard', sans-serif;
+  color: #26221d;
+  background: #fbfaf7;
+}
+
+.field input:focus {
+  outline: 2px solid #2a2722;
+  outline-offset: 1px;
+}
+
+/* 무대: 프로토타입의 stage(1000 × 660)와 같은 비율 */
+.admin-stage {
+  display: flex;
+  height: 720px;
+  padding: 30px 24px;
+  border-radius: 8px;
+  background: #d6d4cc;
+}
+
+.admin-stage .canvas-viewport {
+  flex: 1;
+}
+
+.admin-caption {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.asset-paths {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.dim-label {
+  font-size: 12px;
+  color: #8a8276;
+}
+
+.save-bar {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 16px;
+  margin-top: 24px;
+  padding: 14px 0;
+  border-top: 1px solid #cbc9c1;
+  background: #e3e1da;
+}
+
+.save-status {
+  margin: 0;
+  font-size: 13px;
+  color: #5a5448;
+}
+
+.save-status.is-error,
+.login-error {
+  color: #a3341f;
+}
+
+.save-button {
+  padding: 11px 22px;
+  border: 0;
+  border-radius: 8px;
+  font: 700 14px 'Pretendard', sans-serif;
+  color: #f3efe7;
+  background: #2a2722;
+  cursor: pointer;
+}
+
+.save-button:disabled {
+  opacity: 0.5;
+  cursor: wait;
+}
+
+.text-button {
+  padding: 8px 12px;
+  border: 1px solid #cbc9c1;
+  border-radius: 6px;
+  font: 600 13px 'Pretendard', sans-serif;
+  color: #5b554b;
+  background: transparent;
+  cursor: pointer;
+}
+
+.login {
+  max-width: 360px;
+  margin: 12vh auto 0;
+}
+
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 24px;
+}
+
+.login-error {
+  min-height: 1em;
+  margin: 0;
+  font-size: 13px;
+}

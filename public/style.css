@@ -1,0 +1,190 @@
+/*
+ * design/project/메뉴판 템플릿 시스템.dc.html 을 옮긴 스타일.
+ * 폰트: 매장명·시트명은 Nanum Myeongjo(프로토타입 지정, 인쇄 메뉴판 명조),
+ *       메뉴·가격·설명은 Pretendard(프로토타입 지정, 한글 본문용 고딕).
+ * 크기 단위 --u = min(캔버스 너비, 높이). 프로토타입의 u * 비율을 그대로 쓴다.
+ * 테마 토큰 text/sub/accent: light-olive·deep-green·cream·beige는 프로토타입 값,
+ * cafe-dark·bistro-light·forest-dark·forest-light는 배경 PNG에서 추정한 값이다.
+ */
+.theme-light-olive { --text: #33381f; --sub: #6e7350; --accent: #6f7637; }
+.theme-deep-green { --text: #f0ecd8; --sub: #a9bcab; --accent: #c8a24a; }
+.theme-cream { --text: #3c3120; --sub: #897354; --accent: #b5602f; }
+.theme-beige { --text: #352a1a; --sub: #827049; --accent: #7a8246; }
+.theme-cafe-dark { --text: #f2e8d8; --sub: #b3a48a; --accent: #d9a35b; }
+.theme-bistro-light { --text: #2e2620; --sub: #7d6e60; --accent: #a8452f; }
+.theme-forest-dark { --text: #e6eee4; --sub: #9fb3a2; --accent: #b9c27a; }
+.theme-forest-light { --text: #26332a; --sub: #66786a; --accent: #4f7a55; }
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: #141414;
+  font-family: 'Pretendard', sans-serif;
+}
+
+/* 화면 = 캔버스 영역 + (페이지 2개 이상일 때) 탭 막대 */
+.stage {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+.canvas-viewport {
+  position: relative;
+  flex: 1;
+  overflow: hidden;
+}
+
+/* 디바이스 해상도 캔버스를 --scale 로 축소해 가운데 둔다 */
+.canvas {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: var(--w);
+  height: var(--h);
+  transform: translate(-50%, -50%) scale(var(--scale, 1));
+  overflow: hidden;
+}
+
+.bg-layer,
+.frame-layer {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+}
+
+.frame-layer {
+  pointer-events: none;
+}
+
+.board {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  padding: calc(var(--u) * 0.085);
+  color: var(--text);
+}
+
+.board-tagline {
+  margin: 0;
+  font-size: calc(var(--u) * 0.0175);
+  font-weight: 700;
+  letter-spacing: calc(var(--u) * 0.0175 * 0.42);
+  color: var(--accent);
+}
+
+.board-store {
+  margin: calc(var(--u) * 0.014) 0 0;
+  font: 800 calc(var(--u) * 0.058) / 1 'Nanum Myeongjo', serif;
+}
+
+.board-rule {
+  width: calc(var(--u) * 0.11);
+  height: 2px;
+  margin: calc(var(--u) * 0.03) 0 calc(var(--u) * 0.022);
+  border: 0;
+  background: var(--accent);
+  opacity: 0.85;
+}
+
+.board-sheet {
+  display: flex;
+  align-items: baseline;
+  gap: calc(var(--u) * 0.02);
+}
+
+.sheet-title {
+  margin: 0;
+  font: 700 calc(var(--u) * 0.03) 'Nanum Myeongjo', serif;
+}
+
+.sheet-meta {
+  font-size: calc(var(--u) * 0.0175 * 0.85);
+  font-weight: 600;
+  letter-spacing: calc(var(--u) * 0.0175 * 0.3);
+  color: var(--sub);
+}
+
+.menu-group {
+  margin-top: calc(var(--u) * 0.05);
+}
+
+.group-title {
+  margin: 0 0 calc(var(--u) * 0.02);
+  font-size: calc(var(--u) * 0.0185);
+  font-weight: 600;
+  letter-spacing: calc(var(--u) * 0.004);
+  color: var(--sub);
+}
+
+.menu-list {
+  display: grid;
+  grid-template-columns: repeat(var(--cols, 1), 1fr);
+  column-gap: calc(var(--u) * 0.075);
+  row-gap: calc(var(--u) * 0.032);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.item-row {
+  display: flex;
+  align-items: baseline;
+  gap: calc(var(--u) * 0.012);
+}
+
+.item-name {
+  font-size: calc(var(--u) * 0.03);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.item-leader {
+  flex: 1;
+  align-self: center;
+  margin: 0 calc(var(--u) * 0.006);
+  border-bottom: 1px dotted color-mix(in srgb, var(--sub) 55%, transparent);
+}
+
+.item-price {
+  font-size: calc(var(--u) * 0.03);
+  font-weight: 700;
+  white-space: nowrap;
+  color: var(--accent);
+}
+
+.item-desc {
+  margin: calc(var(--u) * 0.007) 0 0;
+  font-size: calc(var(--u) * 0.0185);
+  line-height: 1.3;
+  color: var(--sub);
+}
+
+/* 품절: 흐림 + 취소선 + 라벨. 프로토타입의 pill(999px)은 규칙상 4px로 */
+.menu-item.is-sold-out {
+  opacity: 0.5;
+}
+
+.menu-item.is-sold-out .item-name {
+  text-decoration: line-through;
+  color: var(--sub);
+}
+
+.menu-item.is-sold-out .item-price {
+  color: var(--sub);
+}
+
+.sold-out-label {
+  padding: calc(var(--u) * 0.003) calc(var(--u) * 0.012);
+  border-radius: 4px;
+  font-size: calc(var(--u) * 0.0185 * 0.82);
+  font-weight: 700;
+  white-space: nowrap;
+  color: #fff;
+  background: var(--accent);
+}

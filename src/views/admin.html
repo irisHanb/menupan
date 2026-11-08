@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>메뉴판 어드민</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Nanum+Myeongjo:wght@400;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
+    <link rel="stylesheet" href="/style.css" />
+    <link rel="stylesheet" href="/admin.css" />
+  </head>
+  <body class="admin">
+    <div class="admin-page">
+      <header class="admin-header">
+        <div>
+          <p class="admin-eyebrow">Excel-Driven Menu Board · Admin</p>
+          <h1 class="admin-title">카페 메뉴판 템플릿 시스템</h1>
+          <p class="admin-lead">
+            같은 Excel 데이터를 두고 <strong>배경·테두리 PNG</strong>만 교체합니다. 저장하면
+            <code>menu.xlsx</code>의 <code>_설정</code> 시트에 기록되고 메뉴판 화면이 바로 바뀝니다.
+          </p>
+        </div>
+        <form method="post" action="/admin/logout"><button type="submit" class="text-button">로그아웃</button></form>
+      </header>
+
+      <section class="controls">
+        <div class="control">
+          <h2 class="control-title">테마 (CSS · PNG 세트)</h2>
+          <div id="theme-options" class="option-row"></div>
+        </div>
+        <div class="control">
+          <h2 class="control-title">디바이스</h2>
+          <div id="device-options" class="option-row"></div>
+        </div>
+        <div class="control">
+          <h2 class="control-title">표시 시트 <span class="control-hint">자동전환초가 0이면 이 시트만, 0보다 크면 이 시트부터 순환</span></h2>
+          <div id="sheet-options" class="option-row"></div>
+        </div>
+        <div class="control">
+          <h2 class="control-title">_설정</h2>
+          <div class="field-row">
+            <label class="field"><span>매장명</span><input id="field-store" maxlength="100" /></label>
+            <label class="field"><span>영문태그</span><input id="field-tagline" maxlength="100" /></label>
+            <label class="field field-narrow"><span>자동전환초</span><input id="field-autoRotateSec" type="number" min="0" max="3600" step="1" /></label>
+          </div>
+        </div>
+      </section>
+
+      <section id="stage" class="admin-stage">
+        <div id="preview-viewport" class="canvas-viewport">
+          <div id="preview-canvas" class="canvas">
+            <div id="preview-bg" class="bg-layer"></div>
+            <div id="preview-board" class="board"></div>
+            <div id="preview-frame" class="frame-layer"></div>
+          </div>
+        </div>
+      </section>
+
+      <footer class="admin-caption">
+        <div class="asset-paths"><code id="bg-url"></code><code id="frame-url"></code></div>
+        <div id="dim-label" class="dim-label"></div>
+      </footer>
+
+      <div class="save-bar">
+        <p id="save-status" class="save-status" role="status"></p>
+        <button id="save-button" type="button" class="save-button">Excel에 저장</button>
+      </div>
+    </div>
+    <script type="module" src="/admin.js"></script>
+  </body>
+</html>
