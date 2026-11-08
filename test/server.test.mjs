@@ -8,6 +8,8 @@ import path from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
 
 const LISTENING = /listening on (\d+)/;
+// 운영 파일(data/menu.xlsx)은 어드민 저장으로 바뀌므로 고정 사본을 쓴다.
+const FIXTURE = 'test/fixtures/menu.xlsx';
 
 // server.mjs를 PORT=0으로 띄우고 stdout의 `listening on <port>`에서 포트를 얻는다.
 async function startServer(env = {}) {
@@ -44,7 +46,7 @@ async function stopServer(child) {
 
 // M3 — 실행 진입점
 test('shouldStartServerAndServeMenu', async () => {
-  const { child, port } = await startServer();
+  const { child, port } = await startServer({ DATA_PATH: FIXTURE });
   try {
     const response = await fetch(`http://127.0.0.1:${port}/api/menu`);
     assert.equal(response.status, 200);
@@ -59,14 +61,14 @@ test('shouldStartServerAndServeMenu', async () => {
 test('shouldPushMenuUpdatedWhenWorkbookChanges', async () => {
   const dir = await mkdtemp(path.join(tmpdir(), 'menupan-server-'));
   const dataPath = path.join(dir, 'menu.xlsx');
-  await copyFile('data/menu.xlsx', dataPath);
+  await copyFile(FIXTURE, dataPath);
   const { child, port } = await startServer({ DATA_PATH: dataPath });
   const controller = new AbortController();
   try {
     const response = await fetch(`http://127.0.0.1:${port}/events`, { signal: controller.signal });
     const reader = response.body.pipeThrough(new TextDecoderStream()).getReader();
     await delay(300); // 감시 준비
-    await copyFile('data/menu.xlsx', dataPath);
+    await copyFile(FIXTURE, dataPath);
     let received = '';
     const deadline = Date.now() + 2000;
     while (!received.includes('event: menu-updated') && Date.now() < deadline) {
