@@ -36,35 +36,35 @@
 
 ## 마일스톤 2 — `_설정` 파싱
 
-- [ ] (B) `_설정`에서 `매장명`을 읽는다
-- [ ] (B) `_설정`에서 `테마`를 읽는다 (없으면 기본값 `cafe-dark`)
-- [ ] (B) `자동전환초`를 숫자로 읽는다 (없거나 비숫자면 `0`)
-- [ ] (B) 최종 출력 형태 `{ store, theme, autoRotateSec, pages }`를 조립한다
+- [x] (B) `_설정`에서 `매장명`을 읽는다
+- [x] (B) `_설정`에서 `테마`를 읽는다 (없으면 기본값 `cafe-dark`)
+- [x] (B) `자동전환초`를 숫자로 읽는다 (없거나 비숫자면 `0`)
+- [x] (B) 최종 출력 형태 `{ store, theme, autoRotateSec, pages }`를 조립한다
 
 ## 마일스톤 3 — HTTP API
 
-- [ ] (S) `server.mjs`에서 Express 앱 생성 로직을 `createApp()`로 분리
+- [x] (S) `server.mjs`에서 Express 앱 생성 로직을 `createApp()`로 분리
       (supertest로 listen 없이 테스트)
-- [ ] (B) `GET /api/menu`가 파서 출력 JSON을 200으로 반환한다
-- [ ] (B) `GET /api/menu`가 잘못된/빈 워크북에서도 깨지지 않고 빈 `pages`를
+- [x] (B) `GET /api/menu`가 파서 출력 JSON을 200으로 반환한다
+- [x] (B) `GET /api/menu`가 잘못된/빈 워크북에서도 깨지지 않고 빈 `pages`를
       반환한다
-- [ ] (B) `public/` 정적 파일을 서빙한다
+- [x] (B) `public/` 정적 파일을 서빙한다
 
 ## 마일스톤 4 — 파일 감시 + SSE
 
 > 실제 fs 이벤트는 임시 fixture 파일로. 디바운스는 타이머 주입으로 결정적이게.
 
-- [ ] (S) 디바운스 로직을 `debounce(fn, ms)` 순수 유틸로 분리
-- [ ] (B) 연속 N회 호출이 `ms` 내면 콜백은 1회만 실행된다
-- [ ] (B) `GET /events`가 SSE 헤더(`text/event-stream`)로 연결을 연다
-- [ ] (B) 워크북 변경 시 연결된 클라이언트에 `event: menu-updated`를 푸시한다
+- [x] (S) 디바운스 로직을 `debounce(fn, ms)` 순수 유틸로 분리
+- [x] (B) 연속 N회 호출이 `ms` 내면 콜백은 1회만 실행된다
+- [x] (B) `GET /events`가 SSE 헤더(`text/event-stream`)로 연결을 연다
+- [x] (B) 워크북 변경 시 연결된 클라이언트에 `event: menu-updated`를 푸시한다
 
 ## 마일스톤 5 — 클라이언트 렌더링 (선택, 강의 진도에 따라)
 
-- [ ] (B) `client.js`가 `/api/menu`를 받아 페이지/항목을 DOM에 렌더한다
-- [ ] (B) `soldOut` 항목에 취소선 + "품절" 라벨을 적용한다
-- [ ] (B) `theme` 값으로 `<body>` 테마 클래스를 스위치한다
-- [ ] (B) `autoRotateSec > 0`이면 그 주기로 페이지를 순환한다
+- [x] (B) `client.js`가 `/api/menu`를 받아 페이지/항목을 DOM에 렌더한다
+- [x] (B) `soldOut` 항목에 취소선 + "품절" 라벨을 적용한다
+- [x] (B) `theme` 값으로 `<body>` 테마 클래스를 스위치한다
+- [x] (B) `autoRotateSec > 0`이면 그 주기로 페이지를 순환한다
 
 ---
 

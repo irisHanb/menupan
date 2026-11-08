@@ -48,10 +48,10 @@
 | -- | ------------------------- | --------- | ----------- | ---- |
 | M0 | 프로젝트 골격             | 2         | `test/parseWorkbook.test.mjs` | DONE |
 | M1 | Excel 파서 (순수 함수)    | 13        | `test/parseWorkbook.test.mjs` | DONE |
-| M2 | `_설정` 파싱              | 6         |             | TODO |
-| M3 | HTTP API                  | 6         |             | TODO |
-| M4 | 파일 감시 + SSE           | 7         |             | TODO |
-| M5 | 클라이언트 렌더링 (선택)  | 6         |             | TODO |
+| M2 | `_설정` 파싱              | 6         | `test/parseWorkbook.test.mjs` | DONE |
+| M3 | HTTP API                  | 6         | `test/app.test.mjs`, `test/loadMenuFromFile.test.mjs`, `test/server.test.mjs` | DONE |
+| M4 | 파일 감시 + SSE           | 7         | `test/debounce.test.mjs`, `test/app.test.mjs`, `test/watchWorkbook.test.mjs`, `test/server.test.mjs` | DONE |
+| M5 | 클라이언트 렌더링 (선택)  | 6         | `test/render.test.mjs` | DONE |
 
 ---
 
@@ -143,12 +143,12 @@
 
 ### 세부 테스트 체크리스트
 
-- [ ] T-02-01 `shouldReadStoreNameFromSettings` — `store === '빌런 커피'`
-- [ ] T-02-02 `shouldReadThemeFromSettings` — `theme === 'deep-green'`
-- [ ] T-02-03 `shouldDefaultThemeToCafeDark` — `테마` 행 없음 → `theme === 'cafe-dark'`
-- [ ] T-02-04 `shouldReadAutoRotateSecondsAsNumber` — `autoRotateSec === 8`
-- [ ] T-02-05 `shouldDefaultAutoRotateToZeroWhenMissingOrNotNumeric` — 행 없음 / `'빠르게'` → 두 경우 모두 `0`
-- [ ] T-02-06 `shouldAssembleFinalShapeWithDefaultsWhenSettingsSheetMissing` — `커피` 시트만 → 키 `['autoRotateSec','pages','store','theme']`, `store === ''`, `theme === 'cafe-dark'`, `autoRotateSec === 0`
+- [x] T-02-01 `shouldReadStoreNameFromSettings` — `store === '빌런 커피'`
+- [x] T-02-02 `shouldReadThemeFromSettings` — `theme === 'deep-green'`
+- [x] T-02-03 `shouldDefaultThemeToCafeDark` — `테마` 행 없음 → `theme === 'cafe-dark'`
+- [x] T-02-04 `shouldReadAutoRotateSecondsAsNumber` — `autoRotateSec === 8`
+- [x] T-02-05 `shouldDefaultAutoRotateToZeroWhenMissingOrNotNumeric` — 행 없음 / `'빠르게'` → 두 경우 모두 `0`
+- [x] T-02-06 `shouldAssembleFinalShapeWithDefaultsWhenSettingsSheetMissing` — `커피` 시트만 → 키 `['autoRotateSec','pages','store','theme']`, `store === ''`, `theme === 'cafe-dark'`, `autoRotateSec === 0`
 
 ### Refactor 점검
 
@@ -158,9 +158,9 @@
 
 ### 기록
 
-- Red:
-- Green:
-- Refactor:
+- Red: `npm test` → tests 20 / pass 14 / fail 6. 대표 실패 `AssertionError: undefined !== 8` (설정 필드 없음)
+- Green: `_설정`을 `{ 항목: 값 }`으로 읽어 `store`·`theme`·`autoRotateSec` 조립(기본값 리터럴 인라인). pass 20 / fail 0
+- Refactor: 3단계, 단계마다 pass 20 / fail 0 — ① Extract Function `readSettings` ② Replace Magic Literal with Symbolic Constant(`SETTINGS_SHEET`, `SETTINGS_COLUMNS`, `SETTING_KEYS`, `DEFAULT_SETTINGS`) ③ Split Phase `toSettings`(읽기와 기본값 적용 분리)
 
 ---
 
@@ -173,12 +173,12 @@
 
 ### 세부 테스트 체크리스트
 
-- [ ] T-03-01 `test/app.test.mjs` › `shouldCreateExpressAppWithoutListening` — `typeof createApp().listen === 'function'`
-- [ ] T-03-02 `shouldServeMenuJsonFromInjectedLoader` — `createApp({ loadMenu: () => menuFixture })` → `GET /api/menu` `200`, `application/json`, body deepEqual `menuFixture`
-- [ ] T-03-03 `shouldRespondWithEmptyPagesWhenLoaderThrows` — `loadMenu`가 `throw` → `200`, body `{ store:'', theme:'cafe-dark', autoRotateSec:0, pages:[] }`
-- [ ] T-03-04 `shouldServeStaticFilesFromPublicDir` — 임시 디렉터리(`fs.mkdtemp`)의 `index.html` → `GET /` `200`, `text/html`, 본문 일치
-- [ ] T-03-05 `test/loadMenuFromFile.test.mjs` › `shouldLoadSampleWorkbookFromDisk` — `loadMenuFromFile('data/menu.xlsx')` → 제목 `['커피','디저트','음료']`, `store === '빌런 커피'`
-- [ ] T-03-06 `test/server.test.mjs` › `shouldStartServerAndServeMenu` — `spawn('node', ['server.mjs'])`(`PORT=0`), stdout `listening on <port>` 대기 후 `GET /api/menu` `200`, `pages.length === 3`, 끝나면 프로세스 종료
+- [x] T-03-01 `test/app.test.mjs` › `shouldCreateExpressAppWithoutListening` — `typeof createApp().listen === 'function'`
+- [x] T-03-02 `shouldServeMenuJsonFromInjectedLoader` — `createApp({ loadMenu: () => menuFixture })` → `GET /api/menu` `200`, `application/json`, body deepEqual `menuFixture`
+- [x] T-03-03 `shouldRespondWithEmptyPagesWhenLoaderThrows` — `loadMenu`가 `throw` → `200`, body `{ store:'', theme:'cafe-dark', autoRotateSec:0, pages:[] }`
+- [x] T-03-04 `shouldServeStaticFilesFromPublicDir` — 임시 디렉터리(`fs.mkdtemp`)의 `index.html` → `GET /` `200`, `text/html`, 본문 일치
+- [x] T-03-05 `test/loadMenuFromFile.test.mjs` › `shouldLoadSampleWorkbookFromDisk` — `loadMenuFromFile('data/menu.xlsx')` → 제목 `['커피','디저트','음료']`, `store === '빌런 커피'`
+- [x] T-03-06 `test/server.test.mjs` › `shouldStartServerAndServeMenu` — `spawn('node', ['server.mjs'])`(`PORT=0`), stdout `listening on <port>` 대기 후 `GET /api/menu` `200`, `pages.length === 3`, 끝나면 프로세스 종료
 
 ### Green 힌트
 
@@ -193,9 +193,9 @@
 
 ### 기록
 
-- Red:
-- Green:
-- Refactor:
+- Red: `npm test` → fail 3(파일 단위). `ERR_MODULE_NOT_FOUND: src/app.mjs`(T-03-01~04), `src/loadMenuFromFile.mjs`(T-03-05), 서버 `code 1` 종료 — `server.mjs` 없음(T-03-06). express 5.3.0·supertest 7.3.2 설치
+- Green: `src/app.mjs`(`createApp({ loadMenu, publicDir })`, 예외 시 빈 메뉴 리터럴 하드코딩) → `src/loadMenuFromFile.mjs`(`XLSX.read(readFileSync)`) → `server.mjs`(`PORT`·`DATA_PATH` 환경변수, `npm start` 추가). pass 26 / fail 0
+- Refactor: 2단계, 단계마다 pass 26 / fail 0 — ① Remove Duplication: 빈 메뉴 리터럴을 `DEFAULT_SETTINGS`에서 파생한 `EMPTY_MENU`(`src/parseWorkbook.mjs`)로 교체 ② Extract Function `loadMenuOrEmpty`
 
 ---
 
@@ -209,13 +209,13 @@
 
 ### 세부 테스트 체크리스트
 
-- [ ] T-04-01 `test/debounce.test.mjs` › `shouldReturnFunctionFromDebounce` — `typeof debounce(fn, 300) === 'function'`
-- [ ] T-04-02 `shouldInvokeOnceForBurstWithinWindow` — 100ms 간격 3회 호출 + `tick(300)` → `callCount === 1`
-- [ ] T-04-03 `shouldInvokeEachTimeWhenCallsAreFartherApartThanWindow` — 호출 → `tick(300)` → 호출 → `tick(300)` → `callCount === 2`
-- [ ] T-04-04 `test/app.test.mjs` › `shouldOpenSseStreamOnEvents` — `GET /events` `200`, `content-type`이 `text/event-stream`으로 시작
-- [ ] T-04-05 `shouldPushMenuUpdatedEventToConnectedClients` — 연결된 클라이언트 1개, `notifyMenuUpdated()` 호출 → 수신 데이터에 `event: menu-updated\n`
-- [ ] T-04-06 `test/watchWorkbook.test.mjs` › `shouldCallOnChangeOnceForRapidWrites` — `watchWorkbook(path, onChange, { debounceMs: 50 })`, 10ms 간격 2회 쓰기, 300ms 대기 → `onChange` 1회, `close()`로 종료
-- [ ] T-04-07 `test/server.test.mjs` › `shouldPushMenuUpdatedWhenWorkbookChanges` — `data/menu.xlsx`를 임시 디렉터리에 복사, `DATA_PATH`로 서버 실행, `/events` 연결 후 파일 재작성 → 2초 안에 `event: menu-updated`
+- [x] T-04-01 `test/debounce.test.mjs` › `shouldReturnFunctionFromDebounce` — `typeof debounce(fn, 300) === 'function'`
+- [x] T-04-02 `shouldInvokeOnceForBurstWithinWindow` — 100ms 간격 3회 호출 + `tick(300)` → `callCount === 1`
+- [x] T-04-03 `shouldInvokeEachTimeWhenCallsAreFartherApartThanWindow` — 호출 → `tick(300)` → 호출 → `tick(300)` → `callCount === 2`
+- [x] T-04-04 `test/app.test.mjs` › `shouldOpenSseStreamOnEvents` — `GET /events` `200`, `content-type`이 `text/event-stream`으로 시작
+- [x] T-04-05 `shouldPushMenuUpdatedEventToConnectedClients` — 연결된 클라이언트 1개, `notifyMenuUpdated()` 호출 → 수신 데이터에 `event: menu-updated\n`
+- [x] T-04-06 `test/watchWorkbook.test.mjs` › `shouldCallOnChangeOnceForRapidWrites` — `watchWorkbook(path, onChange, { debounceMs: 200 })`, 10ms 간격 2회 쓰기, 500ms 대기 (chokidar `change` 간격 ~50ms보다 넓은 창) → `onChange` 1회, `close()`로 종료
+- [x] T-04-07 `test/server.test.mjs` › `shouldPushMenuUpdatedWhenWorkbookChanges` — `data/menu.xlsx`를 임시 디렉터리에 복사, `DATA_PATH`로 서버 실행, `/events` 연결 후 파일 재작성 → 2초 안에 `event: menu-updated`
 
 ### Green 힌트
 
@@ -229,9 +229,9 @@
 
 ### 기록
 
-- Red:
-- Green:
-- Refactor:
+- Red: `npm test` → tests 31 / pass 26 / fail 5. `ERR_MODULE_NOT_FOUND: src/debounce.mjs`(T-04-01~03)·`src/watchWorkbook.mjs`(T-04-06), `404 !== 200`(T-04-04), `TypeError: app.notifyMenuUpdated is not a function`(T-04-05), `Cannot GET /events`(T-04-07). chokidar 6.0.0 설치. `notifyMenuUpdated`는 `createApp`이 반환한 앱의 메서드로 정함(T-03-01의 `app.listen` 계약 유지)
+- Green: `src/debounce.mjs` → `/events` SSE + `app.notifyMenuUpdated`(`event: menu-updated` + `data: {}` — EventSource는 data 없는 이벤트를 발생시키지 않음) → `src/watchWorkbook.mjs`(chokidar `change` + debounce) → `server.mjs` 결선. T-04-06은 `debounceMs: 50`에서 실패: chokidar가 10ms 간격 쓰기 2회를 51ms 간격 `change` 2회로 냄(이벤트 추적으로 확인) → 단언 유지, 창만 200ms로 조정. pass 33 / fail 0 (3회 연속)
+- Refactor: 2단계, 단계마다 pass 33 / fail 0 — ① Extract Module `createSseHub`(`src/sseHub.mjs`, 클라이언트 추가·`close` 시 제거·broadcast) + 이벤트명 상수 `MENU_UPDATED_EVENT` ② Replace Magic Literal `WATCH_DEBOUNCE_MS`(`server.mjs`)
 
 ---
 
@@ -246,12 +246,12 @@
 
 ### 세부 테스트 체크리스트
 
-- [ ] T-05-01 `test/render.test.mjs` › `shouldFormatPriceWithThousandsSeparatorAndWon` — `formatPrice(4500) === '4,500원'`, `formatPrice(12000) === '12,000원'`
-- [ ] T-05-02 `shouldRenderCategoryHeadingsAndItems` — 그룹 `에스프레소`, 항목 `아메리카노` 4500 → 소제목·메뉴명·`4,500원` 포함, 메뉴명의 `<`는 `&lt;`
-- [ ] T-05-03 `shouldMarkSoldOutItemWithClassAndLabel` — `soldOut: true` 항목에만 `is-sold-out` 클래스와 `품절` 텍스트
-- [ ] T-05-04 `shouldBuildThemeClassName` — `themeClass('deep-green') === 'theme-deep-green'`
-- [ ] T-05-05 `shouldWrapToFirstPageAfterLast` — `nextPageIndex(0, 3) === 1`, `nextPageIndex(2, 3) === 0`
-- [ ] T-05-06 `shouldRotatePagesOnlyWhenAutoRotateIsPositive` — `mock.timers`, `startRotation({ autoRotateSec: 5, pageCount: 3, onChange })` + `tick(10000)` → `onChange` 2회(1, 2). `autoRotateSec: 0` → 0회
+- [x] T-05-01 `test/render.test.mjs` › `shouldFormatPriceWithThousandsSeparatorAndWon` — `formatPrice(4500) === '4,500원'`, `formatPrice(12000) === '12,000원'`
+- [x] T-05-02 `shouldRenderCategoryHeadingsAndItems` — 그룹 `에스프레소`, 항목 `아메리카노` 4500 → 소제목·메뉴명·`4,500원` 포함, 메뉴명의 `<`는 `&lt;`
+- [x] T-05-03 `shouldMarkSoldOutItemWithClassAndLabel` — `soldOut: true` 항목에만 `is-sold-out` 클래스와 `품절` 텍스트
+- [x] T-05-04 `shouldBuildThemeClassName` — `themeClass('deep-green') === 'theme-deep-green'`
+- [x] T-05-05 `shouldWrapToFirstPageAfterLast` — `nextPageIndex(0, 3) === 1`, `nextPageIndex(2, 3) === 0`
+- [x] T-05-06 `shouldRotatePagesOnlyWhenAutoRotateIsPositive` — `mock.timers`, `startRotation({ autoRotateSec: 5, pageCount: 3, onChange })` + `tick(10000)` → `onChange` 2회(1, 2). `autoRotateSec: 0` → 0회
 
 ### Refactor 점검
 
@@ -260,6 +260,6 @@
 
 ### 기록
 
-- Red:
-- Green:
-- Refactor:
+- Red: `npm test` → tests 34 / pass 33 / fail 1(파일 단위, 테스트 6개). `ERR_MODULE_NOT_FOUND: public/render.mjs`. T-05-06은 `startRotation`이 `stop()`을 반환하는 것까지 요구
+- Green: `public/render.mjs`(렌더 순수 함수 5개, `renderPage`는 중첩 템플릿 한 덩어리) → pass 39 / fail 0. 연결 코드 `public/index.html`·`client.js`·`style.css` 추가: `node --check` 통과, `PORT=3123` 서버에서 `/`·`/client.js`·`/render.mjs`·`/style.css`·`/api/menu` 모두 200. anti-ai-slop 금지 패턴 grep 0건. 브라우저 4개 해상도 육안 확인은 하지 않음
+- Refactor: 2단계, 단계마다 pass 39 / fail 0 — ① Extract Function `renderGroup`·`renderItem`(중첩 템플릿 해체) ② Extract Constant `HTML_ESCAPES` + `escapeHtml` 함수화

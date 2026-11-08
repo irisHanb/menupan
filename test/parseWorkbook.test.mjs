@@ -136,3 +136,41 @@ test('shouldReturnEmptyPagesForWorkbookWithoutSheets', () => {
   const result = parseWorkbook(XLSX.utils.book_new());
   assert.deepEqual(result.pages, []);
 });
+
+// M2 — _설정 파싱
+const SETTINGS_HEADER = ['항목', '값'];
+const parseWithSettings = (settingsRows) =>
+  parseWorkbook(makeWorkbook({ 커피: [HEADER, AMERICANO], _설정: [SETTINGS_HEADER, ...settingsRows] }));
+
+test('shouldReadStoreNameFromSettings', () => {
+  const result = parseWithSettings([['매장명', '빌런 커피']]);
+  assert.equal(result.store, '빌런 커피');
+});
+
+test('shouldReadThemeFromSettings', () => {
+  const result = parseWithSettings([['매장명', '빌런 커피'], ['테마', 'deep-green']]);
+  assert.equal(result.theme, 'deep-green');
+});
+
+test('shouldDefaultThemeToCafeDark', () => {
+  const result = parseWithSettings([['매장명', '빌런 커피']]);
+  assert.equal(result.theme, 'cafe-dark', '`테마` 행이 없으면 기본 테마를 쓴다');
+});
+
+test('shouldReadAutoRotateSecondsAsNumber', () => {
+  const result = parseWithSettings([['자동전환초', 8]]);
+  assert.equal(result.autoRotateSec, 8);
+});
+
+test('shouldDefaultAutoRotateToZeroWhenMissingOrNotNumeric', () => {
+  assert.equal(parseWithSettings([['매장명', '빌런 커피']]).autoRotateSec, 0, '행이 없으면 0');
+  assert.equal(parseWithSettings([['자동전환초', '빠르게']]).autoRotateSec, 0, '비숫자면 0');
+});
+
+test('shouldAssembleFinalShapeWithDefaultsWhenSettingsSheetMissing', () => {
+  const result = parseWorkbook(makeWorkbook({ 커피: [HEADER, AMERICANO] }));
+  assert.deepEqual(Object.keys(result).sort(), ['autoRotateSec', 'pages', 'store', 'theme']);
+  assert.equal(result.store, '');
+  assert.equal(result.theme, 'cafe-dark');
+  assert.equal(result.autoRotateSec, 0);
+});

@@ -3,10 +3,32 @@ import * as XLSX from 'xlsx';
 const COLUMNS = { name: '메뉴명', price: '가격', desc: '설명', soldOut: '품절', category: '카테고리' };
 const SOLD_OUT_MARK = 'Y';
 const NON_PAGE_PREFIX = '_';
+const SETTINGS_SHEET = '_설정';
+const SETTINGS_COLUMNS = { key: '항목', value: '값' };
+const SETTING_KEYS = { store: '매장명', theme: '테마', autoRotateSec: '자동전환초' };
+const DEFAULT_SETTINGS = { store: '', theme: 'cafe-dark', autoRotateSec: 0 };
+export const EMPTY_MENU = Object.freeze({ ...DEFAULT_SETTINGS, pages: [] });
 
 export function parseWorkbook(workbook) {
   const pages = workbook.SheetNames.filter(isPageSheet).map((name) => toPage(name, workbook.Sheets[name]));
-  return { pages };
+  const settings = toSettings(readSettings(workbook.Sheets[SETTINGS_SHEET]));
+  return { ...settings, pages };
+}
+
+function toSettings(raw) {
+  const autoRotateSec = Number(raw[SETTING_KEYS.autoRotateSec]);
+  return {
+    store: raw[SETTING_KEYS.store] ?? DEFAULT_SETTINGS.store,
+    theme: raw[SETTING_KEYS.theme] ?? DEFAULT_SETTINGS.theme,
+    autoRotateSec: Number.isFinite(autoRotateSec) ? autoRotateSec : DEFAULT_SETTINGS.autoRotateSec,
+  };
+}
+
+// `항목 | 값` 키-값 시트를 객체로 바꾼다. 시트가 없으면 빈 객체.
+function readSettings(sheet) {
+  if (!sheet) return {};
+  const rows = XLSX.utils.sheet_to_json(sheet);
+  return Object.fromEntries(rows.map((row) => [row[SETTINGS_COLUMNS.key], row[SETTINGS_COLUMNS.value]]));
 }
 
 function isPageSheet(sheetName) {
